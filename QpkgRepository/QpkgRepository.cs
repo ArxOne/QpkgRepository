@@ -18,7 +18,7 @@ public class QpkgRepository
 
     public XmlDocument GetXml(params string[]? model)
     {
-        var platforms = model?.Select(x => x.Replace(" ", "+")).ToList() ?? GetPlatforms();
+        var platforms = model is not null && model.Length > 0 ? model.Select(x => x.Replace(" ", "+")).ToList() : GetPlatforms();
         var packagesBysSource = LoadPackagesBySource();
 
         var repository = new XmlDocument();
@@ -36,22 +36,22 @@ public class QpkgRepository
                 var item = repository.CreateElement("item");
                 plugins.AppendChild(item);
 
-                repository.AddElement( item, "internalName", package.Name);
-                AddElementLiteral(item, "name", package.DisplayName.ToCData());
-                AddElementLiteral(item, "description", package.Summary.ToCData());
-                AddElementLiteral(item, "maintainer", package.Author.ToCData());
-                AddElementLiteral(item, "developer", package.Author.ToCData());
-                repository.AddElement( item, "version", package.Version);
+                repository.AddElementCData(item, "name", package.DisplayName);
+                repository.AddElement(item, "internalName", package.Name);
+                repository.AddElementCData(item, "description", package.Summary);
+                repository.AddElement(item, "version", package.Version);
+                repository.AddElementCData(item, "maintainer", package.Author);
+                repository.AddElementCData(item, "developer", package.Author);
 
 
                 foreach (var platformId in platforms)
                 {
-                    var platform = repository.CreateAndAddElement( item, "platform");
-                    repository.AddElement( platform, "platformID", platformId);
+                    var platform = repository.CreateAndAddElement(item, "platform");
+                    repository.AddElement(platform, "platformID", platformId);
                     var elementValue = package.GetUri(_configuration.WebsiteRoot);
-                    repository.AddElement( platform, "location", elementValue);
+                    repository.AddElement(platform, "location", elementValue);
                     if (!string.IsNullOrEmpty(package.Signature))
-                        repository.AddElement( platform, "signature", package.Signature);
+                        repository.AddElement(platform, "signature", package.Signature);
                 }
 
                 repository.AddElement(item, "category", source.Category);
@@ -61,10 +61,10 @@ public class QpkgRepository
                 repository.AddElement(item, "language", source.Languages);
                 repository.AddElement(item, "icon80", source.Icon80Uri);
                 repository.AddElement(item, "icon100", source.Icon100Uri);
-                repository.AddElement(item, "snapshot", source.SnapshotUri.ToCData());
-                repository.AddElement(item, "forumLink", source.ForumLink.ToCData());
-                repository.AddElement(item, "bannerImg", source.BannerImg.ToCData());
-                repository.AddElement(item, "tutorialLink", source.TutorialLink.ToCData());
+                repository.AddElementCData(item, "snapshot", source.SnapshotUri);
+                repository.AddElementCData(item, "forumLink", source.ForumLink);
+                repository.AddElementCData(item, "bannerImg", source.BannerImg);
+                repository.AddElementCData(item, "tutorialLink", source.TutorialLink);
                 repository.AddElement(item, "fwVersion", source.FirmwareMinimumVersion);
             }
         }
@@ -91,13 +91,6 @@ public class QpkgRepository
             var signature = File.ReadAllText(filePath + ".codesigning");
             yield return new Package(config, filePath[_configuration.StorageRoot.Length..], signature);
         }
-    }
-
-    private static void AddElementLiteral(XmlElement parent, string elementName, string elementValue)
-    {
-        var element = parent.OwnerDocument.CreateElement(elementName);
-        element.InnerText = elementValue;
-        parent.AppendChild(element);
     }
 
     private static IList<string> GetPlatforms()

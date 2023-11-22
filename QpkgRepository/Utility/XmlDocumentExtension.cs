@@ -17,4 +17,11 @@ public static class XmlDocumentExtension
         element.InnerText = elementValue;
         parent.AppendChild(element);
     }
-}
+    public static void AddElementCData(this XmlDocument xml, XmlNode parent, string elementName, string elementValue)
+    {
+        var element = xml.CreateElement(elementName);
+        var cdataSection = xml.CreateCDataSection(elementValue);
+        element.AppendChild(cdataSection);
+        parent.AppendChild(element);
+    }
+}   
