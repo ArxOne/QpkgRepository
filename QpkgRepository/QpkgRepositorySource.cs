@@ -62,7 +62,7 @@ public class QpkgRepositorySource
     /// <summary>
     /// The snapshot URI
     /// </summary>
-    public readonly string SnapshotUri;
+    public readonly string? SnapshotUri;
 
     /// <summary>
     /// The published date  
@@ -77,9 +77,9 @@ public class QpkgRepositorySource
     /// </value>
     public Func<Stream, IDictionary<string, string>> GetRawControl { get; }
 
-    public QpkgRepositorySource(string sourceRelativeDirectory, string type, Func<Stream, IDictionary<string, string>> getRawControl, 
-        DateTime? publishedDate = null, string languages = "English, Français", string icon80Uri = "", string icon100Uri = "", string snapshotUri = "",
-        string category = "More", string tutorialLink = "", string changelogLink = "", string forumLink = "", string bannerImg = "", 
+    public QpkgRepositorySource(string sourceRelativeDirectory, string type, Func<Stream, IDictionary<string, string>> getRawControl,
+        DateTime? publishedDate = null, string languages = "English, Français", string icon80Uri = "", string icon100Uri = "", string? snapshotUri = null,
+        string category = "More", string tutorialLink = "", string changelogLink = "", string forumLink = "", string bannerImg = "",
         string firmwareMinimumVersion = "4.3.3")
     {
         SourceRelativeDirectory = sourceRelativeDirectory;

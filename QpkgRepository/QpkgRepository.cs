@@ -29,9 +29,9 @@ public class QpkgRepository
         cacheCheck.InnerText = DateTime.Now.ToString("yyyyMMddHHmm");
         plugins.AppendChild(cacheCheck);
 
-        foreach (var (source, packages) in packagesBysSource)
+        foreach (var packages in packagesBysSource.GroupBy(x => x.Name))
         {
-            var package = packages.MinBy(x => x.Version);
+            var package = packages.MaxBy(x => x.Version);
 
             if (package is null)
                 continue;
@@ -42,7 +42,7 @@ public class QpkgRepository
             repository.AddElementCData(item, "name", package.DisplayName);
             repository.AddElement(item, "internalName", package.Name);
             repository.AddElementCData(item, "description", package.Summary);
-            repository.AddElement(item, "version", package.Version);
+            repository.AddElement(item, "version", package.Version.ToString());
             repository.AddElementCData(item, "maintainer", package.Author);
             repository.AddElementCData(item, "developer", package.Author);
 
@@ -57,51 +57,59 @@ public class QpkgRepository
                     repository.AddElement(platform, "signature", package.Signature);
             }
 
-            repository.AddElement(item, "category", source.Category);
-            repository.AddElement(item, "type", source.Type);
-            repository.AddElement(item, "changeLog", source.ChangelogLink);
-            repository.AddElement(item, "publishedDate", source.PublishedDate.ToString("yyyy/MM/dd"));
-            repository.AddElement(item, "language", source.Languages);
-            repository.AddElement(item, "icon80", source.Icon80Uri);
-            repository.AddElement(item, "icon100", source.Icon100Uri);
-            repository.AddElementCData(item, "snapshot", source.SnapshotUri);
-            repository.AddElementCData(item, "forumLink", source.ForumLink);
-            repository.AddElementCData(item, "bannerImg", source.BannerImg);
-            repository.AddElementCData(item, "tutorialLink", source.TutorialLink);
-            repository.AddElement(item, "fwVersion", source.FirmwareMinimumVersion);
+            repository.AddElement(item, "category", package.Source.Category);
+            repository.AddElement(item, "type", package.Source.Type);
+            repository.AddElement(item, "changeLog", package.Source.ChangelogLink);
+            repository.AddElement(item, "publishedDate", package.Source.PublishedDate.ToString("yyyy/MM/dd"));
+            repository.AddElement(item, "language", package.Source.Languages);
+            repository.AddElement(item, "icon80", package.Source.Icon80Uri);
+            repository.AddElement(item, "icon100", package.Source.Icon100Uri);
+            if (package.Source.SnapshotUri is not null)
+                repository.AddElementCData(item, "snapshot", package.Source.SnapshotUri);
+
+            repository.AddElementCData(item, "forumLink", package.Source.ForumLink);
+            repository.AddElementCData(item, "bannerImg", package.Source.BannerImg);
+            repository.AddElementCData(item, "tutorialLink", package.Source.TutorialLink);
+            repository.AddElement(item, "fwVersion", package.Source.FirmwareMinimumVersion);
 
         }
         return repository;
     }
 
-    private IReadOnlyDictionary<QpkgRepositorySource, IEnumerable<Package>> LoadPackagesBySource()
+    private IEnumerable<Package> LoadPackagesBySource()
     {
-        var packagesBySource = new Dictionary<QpkgRepositorySource, IEnumerable<Package>>();
+        var packagesBySource = new List<Package>();
         foreach (var source in _sources)
         {
             var filePaths = Directory.GetFiles(Path.Combine(_configuration.StorageRoot, source.SourceRelativeDirectory)).Where(x => x.EndsWith(".qpkg"));
-            packagesBySource.Add(source, LoadPackagesFromSource(filePaths, source));
+            packagesBySource.AddRange(LoadPackagesFromSource(filePaths, source));
         }
-        return packagesBySource.ToImmutableDictionary();
+        return packagesBySource;
     }
 
     private IEnumerable<Package> LoadPackagesFromSource(IEnumerable<string> filePaths, QpkgRepositorySource source)
     {
+        var packages = new List<Package>();
         foreach (var filePath in filePaths)
         {
             using var fileStream = File.OpenRead(filePath);
             var config = source.GetRawControl(fileStream);
             var signature = File.ReadAllText(filePath + ".codesigning");
             var storageRootLength = _configuration.StorageRoot.Length + 1;
-            yield return new Package(config, filePath[storageRootLength..], signature);
+            try
+            {
+                var loadPackagesFromSource = new Package(config, filePath[storageRootLength..], signature, source);
+                packages.Add(loadPackagesFromSource);
+            }
+            catch (FormatException) { }
+
         }
+        return packages;
     }
 
-    private static IList<string> GetPlatforms()
+    private static IList<string> GetPlatforms() => new List<string>
     {
-        return new List<string>
-        {
-           "HS-251",
+            "HS-251",
             "HS-251+",
             "HS-251D",
             "MiroKing",
@@ -218,6 +226,5 @@ public class QpkgRepository
             "TVS-872X",
             "TVS-872XT",
             "TVS-882ST3"
-        };
-    }
+    };
 }

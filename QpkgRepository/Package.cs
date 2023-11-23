@@ -4,25 +4,41 @@ using System.Collections.Immutable;
 public class Package
 {
     private IReadOnlyDictionary<string, string> Configuration { get; }
-    public string Location { get; set; }
-    public string Signature { get; set; }
 
-    public string Name => Configuration["QPKG_NAME"];
-    public string DisplayName => Configuration["QPKG_DISPLAY_NAME"];
-    public string Version => Configuration["QPKG_VER"];
-    public string Author => Configuration["QPKG_AUTHOR"];
-    public string Summary => Configuration["QPKG_SUMMARY"];
+    public readonly QpkgRepositorySource Source;
+    
+    public readonly string Signature;
 
-    public Package(IDictionary<string, string> configuration, string location, string signature)
+    public readonly string Name;
+
+    public readonly string DisplayName;
+
+    public readonly Version Version;
+
+    public readonly string Author;
+
+    public readonly string Summary;
+
+    private readonly string _location;
+
+
+    public Package(IDictionary<string, string> configuration, string location, string signature, QpkgRepositorySource source)
     {
-        Location = location;
+        _location = location;
         Signature = signature;
+        Source = source;
         Configuration = configuration.ToImmutableDictionary();
+        Configuration.TryGetValue("QPKG_VER_LONG", out var version);
+        Version = new Version(version ?? Configuration["QPKG_VER"]);
+        Name = Configuration["QPKG_NAME"];
+        DisplayName = Configuration["QPKG_DISPLAY_NAME"];
+        Author = Configuration["QPKG_AUTHOR"];
+        Summary = Configuration["QPKG_SUMMARY"];
     }
 
     public string GetUri(Uri websiteRoot)
     {
-        var uri = new Uri(websiteRoot, Location);
+        var uri = new Uri(websiteRoot, _location);
         return uri.AbsoluteUri;
     }
-}   
+}
