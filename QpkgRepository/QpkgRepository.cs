@@ -31,49 +31,52 @@ public class QpkgRepository
 
         foreach (var (source, packages) in packagesBysSource)
         {
-            foreach (var package in packages)
+            var package = packages.MinBy(x => x.Version);
+
+            if (package is null)
+                continue;
+
+            var item = repository.CreateElement("item");
+            plugins.AppendChild(item);
+
+            repository.AddElementCData(item, "name", package.DisplayName);
+            repository.AddElement(item, "internalName", package.Name);
+            repository.AddElementCData(item, "description", package.Summary);
+            repository.AddElement(item, "version", package.Version);
+            repository.AddElementCData(item, "maintainer", package.Author);
+            repository.AddElementCData(item, "developer", package.Author);
+
+
+            foreach (var platformId in platforms)
             {
-                var item = repository.CreateElement("item");
-                plugins.AppendChild(item);
-
-                repository.AddElementCData(item, "name", package.DisplayName);
-                repository.AddElement(item, "internalName", package.Name);
-                repository.AddElementCData(item, "description", package.Summary);
-                repository.AddElement(item, "version", package.Version);
-                repository.AddElementCData(item, "maintainer", package.Author);
-                repository.AddElementCData(item, "developer", package.Author);
-
-
-                foreach (var platformId in platforms)
-                {
-                    var platform = repository.CreateAndAddElement(item, "platform");
-                    repository.AddElement(platform, "platformID", platformId);
-                    var elementValue = package.GetUri(_configuration.WebsiteRoot);
-                    repository.AddElement(platform, "location", elementValue);
-                    if (!string.IsNullOrEmpty(package.Signature))
-                        repository.AddElement(platform, "signature", package.Signature);
-                }
-
-                repository.AddElement(item, "category", source.Category);
-                repository.AddElement(item, "type", source.Type);
-                repository.AddElement(item, "changeLog", source.ChangelogLink);
-                repository.AddElement(item, "publishedDate", source.PublishedDate.ToString("yyyy/MM/dd"));
-                repository.AddElement(item, "language", source.Languages);
-                repository.AddElement(item, "icon80", source.Icon80Uri);
-                repository.AddElement(item, "icon100", source.Icon100Uri);
-                repository.AddElementCData(item, "snapshot", source.SnapshotUri);
-                repository.AddElementCData(item, "forumLink", source.ForumLink);
-                repository.AddElementCData(item, "bannerImg", source.BannerImg);
-                repository.AddElementCData(item, "tutorialLink", source.TutorialLink);
-                repository.AddElement(item, "fwVersion", source.FirmwareMinimumVersion);
+                var platform = repository.CreateAndAddElement(item, "platform");
+                repository.AddElement(platform, "platformID", platformId);
+                var elementValue = package.GetUri(_configuration.WebsiteRoot);
+                repository.AddElement(platform, "location", elementValue);
+                if (!string.IsNullOrEmpty(package.Signature))
+                    repository.AddElement(platform, "signature", package.Signature);
             }
+
+            repository.AddElement(item, "category", source.Category);
+            repository.AddElement(item, "type", source.Type);
+            repository.AddElement(item, "changeLog", source.ChangelogLink);
+            repository.AddElement(item, "publishedDate", source.PublishedDate.ToString("yyyy/MM/dd"));
+            repository.AddElement(item, "language", source.Languages);
+            repository.AddElement(item, "icon80", source.Icon80Uri);
+            repository.AddElement(item, "icon100", source.Icon100Uri);
+            repository.AddElementCData(item, "snapshot", source.SnapshotUri);
+            repository.AddElementCData(item, "forumLink", source.ForumLink);
+            repository.AddElementCData(item, "bannerImg", source.BannerImg);
+            repository.AddElementCData(item, "tutorialLink", source.TutorialLink);
+            repository.AddElement(item, "fwVersion", source.FirmwareMinimumVersion);
+
         }
         return repository;
     }
 
     private IReadOnlyDictionary<QpkgRepositorySource, IEnumerable<Package>> LoadPackagesBySource()
     {
-        IDictionary<QpkgRepositorySource, IEnumerable<Package>> packagesBySource = new Dictionary<QpkgRepositorySource, IEnumerable<Package>>();
+        var packagesBySource = new Dictionary<QpkgRepositorySource, IEnumerable<Package>>();
         foreach (var source in _sources)
         {
             var filePaths = Directory.GetFiles(Path.Combine(_configuration.StorageRoot, source.SourceRelativeDirectory)).Where(x => x.EndsWith(".qpkg"));
@@ -89,7 +92,8 @@ public class QpkgRepository
             using var fileStream = File.OpenRead(filePath);
             var config = source.GetRawControl(fileStream);
             var signature = File.ReadAllText(filePath + ".codesigning");
-            yield return new Package(config, filePath[_configuration.StorageRoot.Length..], signature);
+            var storageRootLength = _configuration.StorageRoot.Length + 1;
+            yield return new Package(config, filePath[storageRootLength..], signature);
         }
     }
 

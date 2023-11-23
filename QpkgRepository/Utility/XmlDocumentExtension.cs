@@ -1,6 +1,6 @@
-﻿using System.Xml;
+﻿namespace ArxOne.Qnap.Utility;
 
-namespace ArxOne.Qnap.Utility;
+using System.Xml;
 
 public static class XmlDocumentExtension
 {
@@ -24,4 +24,4 @@ public static class XmlDocumentExtension
         element.AppendChild(cdataSection);
         parent.AppendChild(element);
     }
-}   
+}
