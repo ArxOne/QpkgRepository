@@ -10,10 +10,13 @@ public class QpkgRepository
 
     private readonly IReadOnlyList<QpkgRepositorySource> _sources;
 
-    public QpkgRepository(QpkgRepositoryConfiguration qpkgRepositoryConfiguration, IEnumerable<QpkgRepositorySource> sources)
+    private readonly Uri _siteRoot;
+
+    public QpkgRepository(QpkgRepositoryConfiguration qpkgRepositoryConfiguration, IEnumerable<QpkgRepositorySource> sources, Uri siteRoot)
     {
         _configuration = qpkgRepositoryConfiguration;
         _sources = sources.ToImmutableList();
+        _siteRoot = siteRoot;
     }
 
     public XmlDocument GetXml(params string[]? model)
@@ -51,58 +54,54 @@ public class QpkgRepository
             {
                 var platform = repository.CreateAndAddElement(item, "platform");
                 repository.AddElement(platform, "platformID", platformId);
-                var elementValue = package.GetUri(_configuration.WebsiteRoot);
-                repository.AddElement(platform, "location", elementValue);
+                repository.AddElement(platform, "location", package.Location.AbsoluteUri);
                 if (!string.IsNullOrEmpty(package.Signature))
                     repository.AddElement(platform, "signature", package.Signature);
             }
 
-            repository.AddElement(item, "category", package.Source.Category);
-            repository.AddElement(item, "type", package.Source.Type);
-            repository.AddElement(item, "changeLog", package.Source.ChangelogLink);
-            repository.AddElement(item, "publishedDate", package.Source.PublishedDate.ToString("yyyy/MM/dd"));
-            repository.AddElement(item, "language", package.Source.Languages);
-            repository.AddElement(item, "icon80", package.Source.Icon80Uri);
-            repository.AddElement(item, "icon100", package.Source.Icon100Uri);
-            if (package.Source.SnapshotUri is not null)
-                repository.AddElementCData(item, "snapshot", package.Source.SnapshotUri);
+            repository.AddElement(item, "category", package.Category);
+            repository.AddElement(item, "type", package.Type);
+            repository.AddElement(item, "changeLog", package.ChangelogLink);
+            repository.AddElement(item, "publishedDate", package.PublishedDate.ToString("yyyy/MM/dd"));
+            repository.AddElement(item, "language", package.Languages);
+            repository.AddElement(item, "icon80", package.Icon80Uri);
+            repository.AddElement(item, "icon100", package.Icon100Uri);
+            if (package.SnapshotUri is not null)
+                repository.AddElementCData(item, "snapshot", package.SnapshotUri);
 
-            repository.AddElementCData(item, "forumLink", package.Source.ForumLink);
-            repository.AddElementCData(item, "bannerImg", package.Source.BannerImg);
-            repository.AddElementCData(item, "tutorialLink", package.Source.TutorialLink);
-            repository.AddElement(item, "fwVersion", package.Source.FirmwareMinimumVersion);
+            repository.AddElementCData(item, "forumLink", package.ForumLink);
+            repository.AddElementCData(item, "bannerImg", package.BannerImg);
+            repository.AddElementCData(item, "tutorialLink", package.TutorialLink);
+            repository.AddElement(item, "fwVersion", package.FirmwareMinimumVersion);
 
         }
         return repository;
     }
 
-    private IEnumerable<Package> LoadPackagesBySource()
+    private IEnumerable<QpkgPackage> LoadPackagesBySource()
     {
-        var packagesBySource = new List<Package>();
+        var packagesBySource = new List<QpkgPackage>();
         foreach (var source in _sources)
         {
-            var filePaths = Directory.GetFiles(Path.Combine(_configuration.StorageRoot, source.SourceRelativeDirectory)).Where(x => x.EndsWith(".qpkg"));
-            packagesBySource.AddRange(LoadPackagesFromSource(filePaths, source));
+            var files = Directory.GetFiles(source.SourceRelativeDirectory).ToList();
+            packagesBySource.AddRange(LoadPackagesFromSource(files, source));
         }
         return packagesBySource;
     }
 
-    private IEnumerable<Package> LoadPackagesFromSource(IEnumerable<string> filePaths, QpkgRepositorySource source)
+    private IEnumerable<QpkgPackage> LoadPackagesFromSource(IList<string> files, QpkgRepositorySource source)
     {
-        var packages = new List<Package>();
+        var packages = new List<QpkgPackage>();
+
+        var filePaths = files.Where(x => x.EndsWith(".qpkg")).ToList();
         foreach (var filePath in filePaths)
         {
-            using var fileStream = File.OpenRead(filePath);
-            var config = source.GetRawControl(fileStream);
-            var signature = File.ReadAllText(filePath + ".codesigning");
-            var storageRootLength = _configuration.StorageRoot.Length + 1;
             try
             {
-                var loadPackagesFromSource = new Package(config, filePath[storageRootLength..], signature, source);
+                var loadPackagesFromSource = QpkgPackage.Create(filePath, files.Except(filePaths).ToList(), source, _configuration, _siteRoot);
                 packages.Add(loadPackagesFromSource);
             }
             catch (FormatException) { }
-
         }
         return packages;
     }
