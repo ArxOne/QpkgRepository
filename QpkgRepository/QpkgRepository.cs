@@ -1,8 +1,13 @@
 ﻿namespace ArxOne.Qnap;
 
+using System;
+using System.IO;
+using System.Linq;
 using Utility;
 using System.Collections.Immutable;
 using System.Xml;
+using System.Text.Json;
+using System.Collections.Generic;
 
 public class QpkgRepository
 {
@@ -93,18 +98,83 @@ public class QpkgRepository
     {
         var packages = new List<QpkgPackage>();
 
+        var repositoryCache = LoadPackageCache(source);
+        var packageInformation = repositoryCache.Packages.ToDictionary(p => p.LocalPath);
+        var removedPackageInformation = packageInformation.Keys.ToHashSet();
+        var hasNew = false;
+
+
         var filePaths = files.Where(x => x.EndsWith(".qpkg")).ToList();
         foreach (var filePath in filePaths)
         {
-            try
+            if (packageInformation.TryGetValue(filePath, out var package))
             {
-                var loadPackagesFromSource = QpkgPackage.Create(filePath, files.Except(filePaths).ToList(), source, _configuration, _siteRoot);
-                packages.Add(loadPackagesFromSource);
+                removedPackageInformation.Remove(filePath);
+                packages.Add(package);
+
             }
-            catch (FormatException) { }
+            else
+            {
+                try
+                {
+                    var loadPackagesFromSource = new QpkgPackage(filePath, files.Except(filePaths).ToList(), source, _configuration, _siteRoot);
+                    packageInformation[filePath] = loadPackagesFromSource;
+                    hasNew = true;
+                    packages.Add(loadPackagesFromSource);
+                }
+                catch (FormatException) { }
+            }
         }
+
+        if (!hasNew && removedPackageInformation.Count <= 0) 
+            return packages;
+
+        repositoryCache.Packages = packageInformation.Values.ToArray();
+        SavePackageInformation(source, repositoryCache);
         return packages;
     }
+
+    private string? GetCacheFilePath(QpkgRepositorySource source)
+    {
+        var cacheDirectory = _configuration.CacheDirectory;
+        if (cacheDirectory is null)
+            return null;
+        var root = source.SourceRelativeDirectory.Trim('/').Replace('/', '-').Replace('\\', '-');
+        if (!string.IsNullOrEmpty(root))
+            cacheDirectory = Path.Combine(cacheDirectory, root);
+        return cacheDirectory + ".json";
+    }
+
+    private QpkgRepositoryCache LoadPackageCache(QpkgRepositorySource source)
+    {
+        var cacheFilePath = GetCacheFilePath(source);
+        if (cacheFilePath is null)
+            return new QpkgRepositoryCache();
+        if (!File.Exists(cacheFilePath))
+            return new QpkgRepositoryCache();
+        using var cacheReader = File.OpenRead(cacheFilePath);
+        try
+        {
+            return JsonSerializer.Deserialize<QpkgRepositoryCache>(cacheReader);
+        }
+        catch
+        {
+            return new QpkgRepositoryCache();
+        }
+    }
+
+    private void SavePackageInformation(QpkgRepositorySource source, QpkgRepositoryCache repositoryCache)
+    {
+        var cacheFilePath = GetCacheFilePath(source);
+        if (cacheFilePath is null)
+            return;
+        var cacheDirectory = Path.GetDirectoryName(cacheFilePath);
+        if (!Directory.Exists(cacheDirectory))
+            Directory.CreateDirectory(cacheDirectory);
+        using var cacheWriter = File.Create(cacheFilePath);
+        JsonSerializer.Serialize(cacheWriter, repositoryCache);
+    }
+
 
     private static IList<string> GetPlatforms() => new List<string>
     {

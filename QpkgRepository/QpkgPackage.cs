@@ -1,74 +1,76 @@
-﻿using ArxOne.Qnap.Utility;
+﻿namespace ArxOne.Qnap;
 
-namespace ArxOne.Qnap;
+using Utility;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json.Serialization;
 
 public class QpkgPackage
 {
-    public string Signature { get; private init; }
+    [JsonPropertyName("signature")]
+    public string Signature { get; set; }
 
-    public string Name { get; private init; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
 
-    public string DisplayName { get; private init; }
+    [JsonPropertyName("displayName")]
+    public string DisplayName { get; set; }
 
-    public Version Version { get; private init; }
+    [JsonPropertyName("version")]
+    public Version Version { get; set; }
 
-    public string Author { get; private init; }
+    [JsonPropertyName("author")]
+    public string Author { get; set; }
 
-    public string Summary { get; private init; }
+    [JsonPropertyName("summary")]
+    public string Summary { get; set; }
 
-    public string FirmwareMinimumVersion { get; private init; }
+    [JsonPropertyName("firmwareMinimumVersion")]
+    public string FirmwareMinimumVersion { get; set; }
 
-    public string TutorialLink { get; private init; }
+    [JsonPropertyName("tutorialLink")]
+    public string TutorialLink { get; set; }
 
-    public string ForumLink { get; private init; }
+    [JsonPropertyName("forumLink")]
+    public string ForumLink { get; set; }
 
-    public string ChangelogLink { get; private init; }
+    [JsonPropertyName("changelogLink")]
+    public string ChangelogLink { get; set; }
 
-    public string Category { get; private init; }
+    [JsonPropertyName("category")]
+    public string Category { get; set; }
 
-    public string Type { get; private init; }
+    [JsonPropertyName("type")]
+    public string Type { get; set; }
 
-    public string BannerImg { get; private init; }
+    [JsonPropertyName("bannerImg")]
+    public string BannerImg { get; set; }
 
-    public string Icon80Uri { get; private init; }
+    [JsonPropertyName("icon80Uri")]
+    public string Icon80Uri { get; set; }
 
-    public string Icon100Uri { get; private init; }
+    [JsonPropertyName("icon100Uri")]
+    public string Icon100Uri { get; set; }
 
-    public string Languages { get; private init; }
+    [JsonPropertyName("languages")]
+    public string Languages { get; set; }
 
-    public string? SnapshotUri { get; private init; }
+    [JsonPropertyName("publishedDate")]
+    public DateTime PublishedDate { get; set; }
 
-    public DateTime PublishedDate { get; private init; }
+    [JsonPropertyName("localPath")]
+    public string LocalPath { get; set; }
 
-    public Uri Location { get; private init; }
+    [JsonPropertyName("location")]
+    public Uri Location { get; set; }
 
-    private QpkgPackage(string signature, string name, string displayName, Version version, string author, string summary, string firmwareMinimumVersion, string tutorialLink, string forumLink, string changelogLink, string category, string type, string bannerImg, string icon80Uri, string icon100Uri, string languages, Uri location)
-    {
-        Signature = signature;
-        Name = name;
-        DisplayName = displayName;
-        Version = version;
-        Author = author;
-        Summary = summary;
-        FirmwareMinimumVersion = firmwareMinimumVersion;
-        TutorialLink = tutorialLink;
-        ForumLink = forumLink;
-        ChangelogLink = changelogLink;
-        Category = category;
-        Type = type;
-        BannerImg = bannerImg;
-        Icon80Uri = icon80Uri;
-        Icon100Uri = icon100Uri;
-        Languages = languages;
-        Location = location;
-    }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonPropertyName("snapshot_uri")]
+    public string? SnapshotUri { get; set; }
 
-    private QpkgPackage()
-    {
-    }
-
-
-    public static QpkgPackage Create(string packagePath, IList<string> otherFiles, QpkgRepositorySource source, QpkgRepositoryConfiguration configuration, Uri siteRoot)
+    public QpkgPackage(string packagePath, IList<string> otherFiles, QpkgRepositorySource source, QpkgRepositoryConfiguration configuration, Uri siteRoot)
     {
         using var fileStream = File.OpenRead(packagePath);
         var config = source.GetRawControl(fileStream);
@@ -78,28 +80,30 @@ public class QpkgPackage
 
         var packageName = config["QPKG_NAME"];
         var conf = GetConfigurationFile(packageName, otherFiles);
-        return new QpkgPackage
-        {
-            Author = config["QPKG_AUTHOR"],
-            Name = packageName,
-            DisplayName = config["QPKG_DISPLAY_NAME"],
-            Summary = config["QPKG_SUMMARY"],
-            Version = packageVersion,
-            PublishedDate = File.GetLastWriteTime(packagePath),
-            Signature = File.ReadAllText(packagePath + ".codesigning"),
-            Location = GetUri(siteRoot, packagePath, configuration),
-            Icon80Uri = GetIcon(packageName, 80, siteRoot, configuration, otherFiles),
-            Icon100Uri = GetIcon(packageName, 100, siteRoot, configuration, otherFiles),
-            Category = conf.GetValueOrDefault("category") ?? string.Empty,
-            Type = conf.GetValueOrDefault("type") ?? string.Empty,
-            Languages = conf.GetValueOrDefault("language") ?? "English",
-            TutorialLink = conf.GetValueOrDefault("tutoriallink") ?? string.Empty,
-            ChangelogLink = conf.GetValueOrDefault("changelog") ?? string.Empty,
-            ForumLink = conf.GetValueOrDefault("forumlink") ?? string.Empty,
-            SnapshotUri = conf.GetValueOrDefault("snapshot"),
-            BannerImg = conf.GetValueOrDefault("bannerimg") ?? string.Empty,
-            FirmwareMinimumVersion = config["QTS_MINI_VERSION"],
-        };
+        LocalPath = packagePath;
+        Author = config["QPKG_AUTHOR"];
+        Name = packageName;
+        DisplayName = config["QPKG_DISPLAY_NAME"];
+        Summary = config["QPKG_SUMMARY"];
+        Version = packageVersion;
+        PublishedDate = File.GetLastWriteTime(packagePath);
+        Signature = File.ReadAllText(packagePath + ".codesigning");
+        Location = GetUri(siteRoot, packagePath, configuration);
+        Icon80Uri = GetIcon(packageName, 80, siteRoot, configuration, otherFiles);
+        Icon100Uri = GetIcon(packageName, 100, siteRoot, configuration, otherFiles);
+        Category = conf.GetValueOrDefault("category") ?? string.Empty;
+        Type = conf.GetValueOrDefault("type") ?? string.Empty;
+        Languages = conf.GetValueOrDefault("language") ?? "English";
+        TutorialLink = conf.GetValueOrDefault("tutoriallink") ?? string.Empty;
+        ChangelogLink = conf.GetValueOrDefault("changelog") ?? string.Empty;
+        ForumLink = conf.GetValueOrDefault("forumlink") ?? string.Empty;
+        SnapshotUri = conf.GetValueOrDefault("snapshot");
+        BannerImg = conf.GetValueOrDefault("bannerimg") ?? string.Empty;
+        FirmwareMinimumVersion = config["QTS_MINI_VERSION"];
+    }
+
+    public QpkgPackage()
+    {
     }
 
     private static Uri GetUri(Uri siteRoot, string location, QpkgRepositoryConfiguration configuration)

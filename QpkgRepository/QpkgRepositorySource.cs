@@ -1,4 +1,8 @@
-﻿namespace ArxOne.Qnap;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+
+namespace ArxOne.Qnap;
 
 public class QpkgRepositorySource
 {

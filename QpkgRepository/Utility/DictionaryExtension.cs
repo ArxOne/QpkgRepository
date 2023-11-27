@@ -1,4 +1,6 @@
-﻿namespace ArxOne.Qnap.Utility;
+﻿using System.Collections.Generic;
+
+namespace ArxOne.Qnap.Utility;
 
 public static class DictionaryExtension
 {
