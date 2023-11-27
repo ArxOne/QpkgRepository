@@ -92,7 +92,7 @@ public class QpkgPackage
             Icon100Uri = GetIcon(packageName, 100, siteRoot, configuration, otherFiles),
             Category = conf.GetValueOrDefault("category") ?? string.Empty,
             Type = conf.GetValueOrDefault("type") ?? string.Empty,
-            Languages = conf.GetValueOrDefault("language") ?? string.Empty,
+            Languages = conf.GetValueOrDefault("language") ?? "English",
             TutorialLink = conf.GetValueOrDefault("tutoriallink") ?? string.Empty,
             ChangelogLink = conf.GetValueOrDefault("changelog") ?? string.Empty,
             ForumLink = conf.GetValueOrDefault("forumlink") ?? string.Empty,
