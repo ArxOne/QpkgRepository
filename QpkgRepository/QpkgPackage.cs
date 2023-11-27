@@ -87,9 +87,9 @@ public class QpkgPackage
             Version = packageVersion,
             PublishedDate = File.GetLastWriteTime(packagePath),
             Signature = File.ReadAllText(packagePath + ".codesigning"),
-            Location = GetUri(siteRoot, packagePath),
-            Icon80Uri = GetIcon(packageName, otherFiles, configuration, 80, siteRoot),
-            Icon100Uri = GetIcon(packageName, otherFiles, configuration, 100, siteRoot),
+            Location = GetUri(siteRoot, packagePath, configuration),
+            Icon80Uri = GetIcon(packageName, 80, siteRoot, configuration, otherFiles),
+            Icon100Uri = GetIcon(packageName, 100, siteRoot, configuration, otherFiles),
             Category = conf.GetValueOrDefault("category") ?? string.Empty,
             Type = conf.GetValueOrDefault("type") ?? string.Empty,
             Languages = conf.GetValueOrDefault("language") ?? string.Empty,
@@ -102,19 +102,22 @@ public class QpkgPackage
         };
     }
 
-    private static Uri GetUri(Uri websiteRoot, string location)
+    private static Uri GetUri(Uri siteRoot, string location, QpkgRepositoryConfiguration configuration)
     {
-        return new Uri(websiteRoot, location);
+        var storageRootLength = configuration.StorageRoot.Length + 1;
+
+        return new Uri(siteRoot, location[storageRootLength..]);
     }
 
-    private static string GetIcon(string packageName, IEnumerable<string> otherFiles, QpkgRepositoryConfiguration configuration, int size, Uri siteRoot)
+    private static string GetIcon(string packageName, int size, Uri siteRoot, QpkgRepositoryConfiguration configuration, IEnumerable<string> otherFiles)
     {
         var iconName = $"{packageName}_{size}";
         var iconLocalPath = otherFiles.FirstOrDefault(x => x.Contains(iconName));
 
         if (iconLocalPath is null || !File.Exists(iconLocalPath))
             return string.Empty;
-        return GetUri(siteRoot, iconLocalPath).AbsoluteUri;
+        var uri = GetUri(siteRoot, iconLocalPath, configuration);
+        return uri.AbsoluteUri;
     }
 
     private static IDictionary<string, string> GetConfigurationFile(string packageName, IEnumerable<string> otherFiles)
