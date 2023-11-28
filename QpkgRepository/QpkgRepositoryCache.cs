@@ -1,9 +1,8 @@
-﻿using System;
+﻿namespace ArxOne.Qnap;
 
-namespace ArxOne.Qnap;
+using System;
 
 public class QpkgRepositoryCache
 {
     public QpkgPackage[] Packages { get; set; } = Array.Empty<QpkgPackage>();
-
 }

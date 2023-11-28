@@ -1,14 +1,21 @@
-﻿using System.IO;
+﻿namespace ArxOne.Qnap;
 
-namespace ArxOne.Qnap;
+using System.IO;
 
 public class QpkgRepositoryConfiguration
 {
     private bool _cacheDirectorySet;
     private string? _cacheDirectory;
+
+    /// <summary>
+    /// Gets or sets the cache directory.
+    /// </summary>
+    /// <value>
+    /// The cache directory.
+    /// </value>
     public string? CacheDirectory
     {
-        get { return _cacheDirectorySet ? _cacheDirectory : GetDefaultCacheDirectory(); }
+        get => _cacheDirectorySet ? _cacheDirectory : GetDefaultCacheDirectory();
         set
         {
             _cacheDirectory = value;
