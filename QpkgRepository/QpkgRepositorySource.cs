@@ -19,6 +19,9 @@ public class QpkgRepositorySource
     /// </value>
     public Func<Stream, IDictionary<string, string>> GetRawControl { get; }
 
+    internal QpkgRepositoryCache? Cache { get; set; }
+
+
     public QpkgRepositorySource(string sourceRelativeDirectory, Func<Stream, IDictionary<string, string>> getRawControl)
     {
         SourceRelativeDirectory = sourceRelativeDirectory;

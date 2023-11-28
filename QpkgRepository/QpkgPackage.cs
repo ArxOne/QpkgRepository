@@ -70,7 +70,7 @@ public class QpkgPackage
     [JsonPropertyName("snapshot_uri")]
     public string? SnapshotUri { get; set; }
 
-    public QpkgPackage(string packagePath, IList<string> otherFiles, QpkgRepositorySource source, QpkgRepositoryConfiguration configuration, Uri siteRoot)
+    public QpkgPackage(string packagePath, IList<string> otherFiles, QpkgRepositorySource source, QpkgRepositoryConfiguration configuration)
     {
         using var fileStream = File.OpenRead(packagePath);
         var config = source.GetRawControl(fileStream);
@@ -88,9 +88,9 @@ public class QpkgPackage
         Version = packageVersion;
         PublishedDate = File.GetLastWriteTime(packagePath);
         Signature = File.ReadAllText(packagePath + ".codesigning");
-        Location = GetUri(siteRoot, packagePath, configuration);
-        Icon80Uri = GetIcon(packageName, 80, siteRoot, configuration, otherFiles);
-        Icon100Uri = GetIcon(packageName, 100, siteRoot, configuration, otherFiles);
+        Location = GetUri(packagePath, configuration);
+        Icon80Uri = GetIcon(packageName, 80, configuration, otherFiles);
+        Icon100Uri = GetIcon(packageName, 100, configuration, otherFiles);
         Category = conf.GetValueOrDefault("category") ?? string.Empty;
         Type = conf.GetValueOrDefault("type") ?? string.Empty;
         Languages = conf.GetValueOrDefault("language") ?? "English";
@@ -106,21 +106,21 @@ public class QpkgPackage
     {
     }
 
-    private static Uri GetUri(Uri siteRoot, string location, QpkgRepositoryConfiguration configuration)
+    private static Uri GetUri(string location, QpkgRepositoryConfiguration configuration)
     {
         var storageRootLength = configuration.StorageRoot.Length + 1;
 
-        return new Uri(siteRoot, location[storageRootLength..]);
+        return new Uri(configuration.SiteRoot, location[storageRootLength..]);
     }
 
-    private static string GetIcon(string packageName, int size, Uri siteRoot, QpkgRepositoryConfiguration configuration, IEnumerable<string> otherFiles)
+    private static string GetIcon(string packageName, int size, QpkgRepositoryConfiguration configuration, IEnumerable<string> otherFiles)
     {
         var iconName = $"{packageName}_{size}";
         var iconLocalPath = otherFiles.FirstOrDefault(x => x.Contains(iconName));
 
         if (iconLocalPath is null || !File.Exists(iconLocalPath))
             return string.Empty;
-        var uri = GetUri(siteRoot, iconLocalPath, configuration);
+        var uri = GetUri(iconLocalPath, configuration);
         return uri.AbsoluteUri;
     }
 

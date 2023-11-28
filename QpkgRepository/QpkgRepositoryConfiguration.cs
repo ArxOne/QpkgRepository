@@ -1,5 +1,6 @@
 ﻿namespace ArxOne.Qnap;
 
+using System;
 using System.IO;
 
 public class QpkgRepositoryConfiguration
@@ -23,6 +24,9 @@ public class QpkgRepositoryConfiguration
         }
     }
 
+    private readonly Func<Uri> _getSiteRoot;
+    public Uri SiteRoot => _getSiteRoot();
+
     /// <summary>
     /// Gets or sets the storage root.
     /// </summary>
@@ -30,9 +34,10 @@ public class QpkgRepositoryConfiguration
     /// The storage root.
     /// </value>
     public string StorageRoot { get; }
-    
-    public QpkgRepositoryConfiguration(string storageRoot)
+
+    public QpkgRepositoryConfiguration(Func<Uri> getSiteRoot, string storageRoot)
     {
+        _getSiteRoot = getSiteRoot;
         StorageRoot = storageRoot;
     }
     private string GetDefaultCacheDirectory()

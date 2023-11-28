@@ -15,15 +15,18 @@ public class QpkgRepository
 
     private readonly IReadOnlyList<QpkgRepositorySource> _sources;
 
-    private readonly Uri _siteRoot;
-
-    public QpkgRepository(QpkgRepositoryConfiguration qpkgRepositoryConfiguration, IEnumerable<QpkgRepositorySource> sources, Uri siteRoot)
+    public QpkgRepository(QpkgRepositoryConfiguration qpkgRepositoryConfiguration, IEnumerable<QpkgRepositorySource> sources)
     {
         _configuration = qpkgRepositoryConfiguration;
         _sources = sources.ToImmutableList();
-        _siteRoot = siteRoot;
     }
 
+    public void Reload()
+    {
+        foreach (var source in _sources)
+            source.Cache = null;
+    }
+        
     public XmlDocument GetXml(params string[]? model)
     {
         var platforms = model is not null && model.Length > 0 ? model.Select(x => x.Replace(" ", "+")).ToList() : GetPlatforms();
@@ -117,7 +120,7 @@ public class QpkgRepository
             {
                 try
                 {
-                    var loadPackagesFromSource = new QpkgPackage(filePath, files.Except(filePaths).ToList(), source, _configuration, _siteRoot);
+                    var loadPackagesFromSource = new QpkgPackage(filePath, files.Except(filePaths).ToList(), source, _configuration);
                     packageInformation[filePath] = loadPackagesFromSource;
                     hasNew = true;
                     packages.Add(loadPackagesFromSource);
@@ -147,6 +150,8 @@ public class QpkgRepository
 
     private QpkgRepositoryCache LoadPackageCache(QpkgRepositorySource source)
     {
+        if (source.Cache is not null)
+            return source.Cache;
         var cacheFilePath = GetCacheFilePath(source);
         if (cacheFilePath is null)
             return new QpkgRepositoryCache();
@@ -165,6 +170,7 @@ public class QpkgRepository
 
     private void SavePackageInformation(QpkgRepositorySource source, QpkgRepositoryCache repositoryCache)
     {
+        source.Cache = repositoryCache;
         var cacheFilePath = GetCacheFilePath(source);
         if (cacheFilePath is null)
             return;
