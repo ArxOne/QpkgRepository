@@ -160,9 +160,9 @@ public class QpkgRepository
         using var cacheReader = File.OpenRead(cacheFilePath);
         try
         {
-            return JsonSerializer.Deserialize<QpkgRepositoryCache>(cacheReader);
+            return JsonSerializer.Deserialize<QpkgRepositoryCache>(cacheReader) ?? new QpkgRepositoryCache();
         }
-        catch
+        catch   
         {
             return new QpkgRepositoryCache();
         }
@@ -175,7 +175,7 @@ public class QpkgRepository
         if (cacheFilePath is null)
             return;
         var cacheDirectory = Path.GetDirectoryName(cacheFilePath);
-        if (!Directory.Exists(cacheDirectory))
+        if (cacheDirectory is not null && !Directory.Exists(cacheDirectory))
             Directory.CreateDirectory(cacheDirectory);
         using var cacheWriter = File.Create(cacheFilePath);
         JsonSerializer.Serialize(cacheWriter, repositoryCache);
