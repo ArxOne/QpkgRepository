@@ -9,6 +9,9 @@ using System.Text.Json.Serialization;
 
 public class QpkgPackage
 {
+    private const string DefaultLanguages = "English";
+    private const string DefaultCategory = "More";
+
     [JsonPropertyName("signature")]
     public string Signature { get; set; }
 
@@ -78,32 +81,50 @@ public class QpkgPackage
 
         var packageVersion = new Version(version ?? config["QPKG_VER"]);
 
-        var packageName = config["QPKG_NAME"];
+        var packageName = config.GetValueOrDefault("QPKG_NAME");
         var conf = GetConfigurationFile(packageName, otherFiles);
         LocalPath = packagePath;
-        Author = config["QPKG_AUTHOR"];
+        Author = config.GetValueOrDefault("QPKG_AUTHOR");
         Name = packageName;
-        DisplayName = config["QPKG_DISPLAY_NAME"];
-        Summary = config["QPKG_SUMMARY"];
+        DisplayName = config.GetValueOrDefault("QPKG_DISPLAY_NAME");
+        Summary = config.GetValueOrDefault("QPKG_SUMMARY");
         Version = packageVersion;
         PublishedDate = File.GetLastWriteTime(packagePath);
         Signature = File.ReadAllText(packagePath + ".codesigning");
         Location = GetUri(packagePath, configuration);
         Icon80Uri = GetIcon(packageName, 80, configuration, otherFiles);
         Icon100Uri = GetIcon(packageName, 100, configuration, otherFiles);
-        Category = conf.GetValueOrDefault("category") ?? string.Empty;
-        Type = conf.GetValueOrDefault("type") ?? string.Empty;
-        Languages = conf.GetValueOrDefault("language") ?? "English";
-        TutorialLink = conf.GetValueOrDefault("tutoriallink") ?? string.Empty;
-        ChangelogLink = conf.GetValueOrDefault("changelog") ?? string.Empty;
-        ForumLink = conf.GetValueOrDefault("forumlink") ?? string.Empty;
+        Category = conf.GetValueOrDefault("category", DefaultCategory);
+        Type = conf.GetValueOrDefault("type");
+        Languages = conf.GetValueOrDefault("language", DefaultLanguages);
+        TutorialLink = conf.GetValueOrDefault("tutoriallink");
+        ChangelogLink = conf.GetValueOrDefault("changelog");
+        ForumLink = conf.GetValueOrDefault("forumlink");
         SnapshotUri = conf.GetValueOrDefault("snapshot");
-        BannerImg = conf.GetValueOrDefault("bannerimg") ?? string.Empty;
-        FirmwareMinimumVersion = config["QTS_MINI_VERSION"];
+        BannerImg = conf.GetValueOrDefault("bannerimg");
+        FirmwareMinimumVersion = config.GetValueOrDefault("QTS_MINI_VERSION");
     }
 
     public QpkgPackage()
     {
+        Signature = string.Empty;
+        Name = string.Empty;
+        DisplayName = string.Empty;
+        Version = new Version();
+        Author = string.Empty;
+        Summary = string.Empty;
+        FirmwareMinimumVersion = string.Empty;
+        TutorialLink = string.Empty;
+        ForumLink = string.Empty;
+        ChangelogLink = string.Empty;
+        Category = DefaultCategory;
+        Type = string.Empty;
+        BannerImg = string.Empty;
+        Icon80Uri = string.Empty;  
+        Icon100Uri = string.Empty;
+        Languages = DefaultLanguages;
+        LocalPath = string.Empty;
+        Location = new Uri(string.Empty);
     }
 
     private static Uri GetUri(string location, QpkgRepositoryConfiguration configuration)
