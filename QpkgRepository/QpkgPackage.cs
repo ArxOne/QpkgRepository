@@ -82,7 +82,7 @@ public class QpkgPackage
         var packageVersion = new Version(version ?? config["QPKG_VER"]);
 
         var packageName = config.GetValueOrDefault("QPKG_NAME");
-        var conf = GetConfigurationFile(packageName, otherFiles);
+        IDictionary<string,string> conf = GetConfigurationFile(packageName, otherFiles);
         LocalPath = packagePath;
         Author = config.GetValueOrDefault("QPKG_AUTHOR");
         Name = packageName;
