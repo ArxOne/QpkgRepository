@@ -145,7 +145,7 @@ public class QpkgPackage
         return uri.AbsoluteUri;
     }
 
-    private static IDictionary<string, string> GetConfigurationFile(string packageName, IEnumerable<string> otherFiles)
+    private static Dictionary<string, string> GetConfigurationFile(string packageName, IEnumerable<string> otherFiles)
     {
         try
         {
