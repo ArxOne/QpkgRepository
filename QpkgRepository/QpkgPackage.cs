@@ -160,8 +160,8 @@ public class QpkgPackage
             return new Dictionary<string, string>();
         }
     }
-
-    private static IDictionary<string, string> ParseConfiguration(string config, char separator = '=')
+    
+    private static Dictionary<string, string> ParseConfiguration(string config, char separator = '=')
     {
         var configuration = new Dictionary<string, string>();
         foreach (var line in config.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()))

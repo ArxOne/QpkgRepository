@@ -86,7 +86,7 @@ public class QpkgRepository
         return repository;
     }
 
-    private IEnumerable<QpkgPackage> LoadPackagesBySource()
+    private List<QpkgPackage> LoadPackagesBySource()
     {
         var packagesBySource = new List<QpkgPackage>();
         foreach (var source in _sources)
@@ -97,7 +97,7 @@ public class QpkgRepository
         return packagesBySource;
     }
 
-    private IEnumerable<QpkgPackage> LoadPackagesFromSource(IList<string> files, QpkgRepositorySource source)
+    private List<QpkgPackage> LoadPackagesFromSource(IList<string> files, QpkgRepositorySource source)
     {
         var packages = new List<QpkgPackage>();
 
@@ -182,7 +182,7 @@ public class QpkgRepository
     }
 
 
-    private static IList<string> GetPlatforms() => new List<string>
+    private static List<string> GetPlatforms() => new List<string>
     {
             "HS-251",
             "HS-251+",

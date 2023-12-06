@@ -40,7 +40,8 @@ public class QpkgRepositoryConfiguration
         _getSiteRoot = getSiteRoot;
         StorageRoot = storageRoot;
     }
-    private string GetDefaultCacheDirectory()
+
+    private static string GetDefaultCacheDirectory()
     {
         return Path.Combine(Path.GetTempPath(), "qpkg-repository");
     }
