@@ -73,16 +73,13 @@ public class QpkgPackage
     [JsonPropertyName("snapshot_uri")]
     public string? SnapshotUri { get; set; }
 
-    public QpkgPackage(string packagePath, IList<string> otherFiles, QpkgRepositorySource source, QpkgRepositoryConfiguration configuration)
+    public QpkgPackage(string packagePath, IList<string> otherFiles, QpkgRepositorySource source, QpkgRepositoryConfiguration configuration, Func<Version?>? onVersionFailed = null)
     {
         using var fileStream = File.OpenRead(packagePath);
         var config = source.GetRawControl(fileStream);
-        config.TryGetValue("QPKG_VER_LONG", out var version);
-
-        var packageVersion = new Version(version ?? config["QPKG_VER"]);
-
+        var packageVersion = GetPackageVersion(config, onVersionFailed);
         var packageName = config.GetValueOrDefault("QPKG_NAME");
-        IDictionary<string,string> conf = GetConfigurationFile(packageName, otherFiles);
+        IDictionary<string, string> conf = GetConfigurationFile(packageName, otherFiles);
         LocalPath = packagePath;
         Author = config.GetValueOrDefault("QPKG_AUTHOR");
         Name = packageName;
@@ -105,6 +102,19 @@ public class QpkgPackage
         FirmwareMinimumVersion = config.GetValueOrDefault("QTS_MINI_VERSION");
     }
 
+    private static Version GetPackageVersion(IDictionary<string, string> config, Func<Version?>? onVersionFailed)
+    {
+        try
+        {
+            config.TryGetValue("QPKG_VER_LONG", out var version);
+            return new Version(version ?? config["QPKG_VER"]);
+        }
+        catch (FormatException)
+        {
+            return onVersionFailed?.Invoke();
+        }
+    }
+
     public QpkgPackage()
     {
         Signature = string.Empty;
@@ -120,7 +130,7 @@ public class QpkgPackage
         Category = DefaultCategory;
         Type = string.Empty;
         BannerImg = string.Empty;
-        Icon80Uri = string.Empty;  
+        Icon80Uri = string.Empty;
         Icon100Uri = string.Empty;
         Languages = DefaultLanguages;
         LocalPath = string.Empty;
@@ -160,7 +170,7 @@ public class QpkgPackage
             return new Dictionary<string, string>();
         }
     }
-    
+
     private static Dictionary<string, string> ParseConfiguration(string config, char separator = '=')
     {
         var configuration = new Dictionary<string, string>();

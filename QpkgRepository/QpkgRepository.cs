@@ -26,11 +26,15 @@ public class QpkgRepository
         foreach (var source in _sources)
             source.Cache = null;
     }
-        
-    public XmlDocument GetXml(params string[]? model)
+
+    public XmlDocument GetXml(params string[]? model) => GetXml(model, null);
+
+    public XmlDocument GetXml(Func<string, Version?>? onVersionFailed) => GetXml(null, onVersionFailed);
+
+    public XmlDocument GetXml(string[]? model, Func<string, Version?>? onVersionFailed = null)
     {
         var platforms = model is not null && model.Length > 0 ? model.Select(x => x.Replace(" ", "+")).ToList() : GetPlatforms();
-        var packagesBysSource = LoadPackagesBySource();
+        var packagesBysSource = LoadPackagesBySource(onVersionFailed);
 
         var repository = new XmlDocument();
         var plugins = repository.CreateElement("plugins");
@@ -86,18 +90,18 @@ public class QpkgRepository
         return repository;
     }
 
-    private List<QpkgPackage> LoadPackagesBySource()
+    private List<QpkgPackage> LoadPackagesBySource(Func<string, Version?>? onVersionFailed = null)
     {
         var packagesBySource = new List<QpkgPackage>();
         foreach (var source in _sources)
         {
             var files = Directory.GetFiles(source.SourceRelativeDirectory).ToList();
-            packagesBySource.AddRange(LoadPackagesFromSource(files, source));
+            packagesBySource.AddRange(LoadPackagesFromSource(files, source, onVersionFailed));
         }
         return packagesBySource;
     }
 
-    private List<QpkgPackage> LoadPackagesFromSource(IList<string> files, QpkgRepositorySource source)
+    private List<QpkgPackage> LoadPackagesFromSource(IList<string> files, QpkgRepositorySource source, Func<string, Version?>? onVersionFailed = null)
     {
         var packages = new List<QpkgPackage>();
 
@@ -120,7 +124,7 @@ public class QpkgRepository
             {
                 try
                 {
-                    var loadPackagesFromSource = new QpkgPackage(filePath, files.Except(filePaths).ToList(), source, _configuration);
+                    var loadPackagesFromSource = new QpkgPackage(filePath, files.Except(filePaths).ToList(), source, _configuration, () => onVersionFailed?.Invoke(filePath));
                     packageInformation[filePath] = loadPackagesFromSource;
                     hasNew = true;
                     packages.Add(loadPackagesFromSource);
@@ -129,7 +133,7 @@ public class QpkgRepository
             }
         }
 
-        if (!hasNew && removedPackageInformation.Count <= 0) 
+        if (!hasNew && removedPackageInformation.Count <= 0)
             return packages;
 
         repositoryCache.Packages = packageInformation.Values.ToArray();
@@ -162,7 +166,7 @@ public class QpkgRepository
         {
             return JsonSerializer.Deserialize<QpkgRepositoryCache>(cacheReader) ?? new QpkgRepositoryCache();
         }
-        catch   
+        catch
         {
             return new QpkgRepositoryCache();
         }
