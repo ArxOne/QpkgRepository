@@ -130,6 +130,7 @@ public class QpkgRepository
                     packages.Add(loadPackagesFromSource);
                 }
                 catch (FormatException) { }
+                catch (FileNotFoundException) { }
             }
         }
 
