@@ -49,12 +49,12 @@ public class QpkgRepository
     private XElement CreateItemElement(QpkgPackage package, IEnumerable<string> platforms)
     {
         var itemElement = new XElement("item",
-            new XElement("name", package.DisplayName),
+            new XElement("name", new XCData(package.DisplayName)),
             new XElement("internalName", package.Name),
-            new XElement("description", package.Summary),
+            new XElement("description", new XCData(package.Summary)),
             new XElement("version", package.LiteralVersion),
-            new XElement("maintainer", package.Author),
-            new XElement("developer", package.Author)
+            new XElement("maintainer", new XCData(package.Author)),
+            new XElement("developer", new XCData(package.Author))
             );
         itemElement.Add(platforms.Select(p => CreatePlatformElement(package, p)));
         itemElement.Add(
@@ -66,10 +66,10 @@ public class QpkgRepository
         );
         itemElement.AddXElementIfNotNullOrEmpty("icon100", package.Icon100Uri);
         itemElement.AddXElementIfNotNullOrEmpty("icon80", package.Icon80Uri);
-        itemElement.AddXElementIfNotNullOrEmpty("snapshot", package.SnapshotUri, true);
-        itemElement.AddXElementIfNotNullOrEmpty("forumLink", package.ForumLink, true);
-        itemElement.AddXElementIfNotNullOrEmpty("bannerImg", package.BannerImg, true);
-        itemElement.AddXElementIfNotNullOrEmpty("tutorialLink", package.TutorialLink, true);
+        itemElement.AddXElementIfNotNullOrEmpty("snapshot", package.SnapshotUri);
+        itemElement.AddXElementIfNotNullOrEmpty("forumLink", package.ForumLink);
+        itemElement.AddXElementIfNotNullOrEmpty("bannerImg", package.BannerImg);
+        itemElement.AddXElementIfNotNullOrEmpty("tutorialLink", package.TutorialLink);
         itemElement.Add(
             new XElement("fwVersion", package.FirmwareMinimumVersion)
         );
