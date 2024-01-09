@@ -91,7 +91,7 @@ public class QpkgPackage
         LiteralVersion = literalVersion;
         Version = packageVersion;
         PublishedDate = File.GetLastWriteTime(packagePath);
-        Signature = File.ReadAllText(packagePath + ".codesigning");
+        Signature = File.ReadAllText(packagePath + ".codesigning").Trim();
         Location = GetUri(packagePath, configuration);
         Icon80Uri = GetIcon(packageName, 80, configuration, otherFiles);
         Icon100Uri = GetIcon(packageName, 100, configuration, otherFiles);
