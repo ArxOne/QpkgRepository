@@ -21,6 +21,9 @@ public class QpkgPackage
     [JsonPropertyName("displayName")]
     public string DisplayName { get; set; }
 
+    [JsonPropertyName("literalVersion")]
+    public string LiteralVersion { get; set; }
+
     [JsonPropertyName("version")]
     public Version Version { get; set; }
 
@@ -77,7 +80,7 @@ public class QpkgPackage
     {
         using var fileStream = File.OpenRead(packagePath);
         var config = source.GetRawControl(fileStream);
-        var packageVersion = GetPackageVersion(config, onVersionFailed);
+        var (literalVersion, packageVersion) = GetPackageVersion(config, onVersionFailed);
         var packageName = config.GetValueOrDefault("QPKG_NAME");
         IDictionary<string, string> conf = GetConfigurationFile(packageName, otherFiles);
         LocalPath = packagePath;
@@ -85,6 +88,7 @@ public class QpkgPackage
         Name = packageName;
         DisplayName = config.GetValueOrDefault("QPKG_DISPLAY_NAME");
         Summary = config.GetValueOrDefault("QPKG_SUMMARY");
+        LiteralVersion = literalVersion;
         Version = packageVersion;
         PublishedDate = File.GetLastWriteTime(packagePath);
         Signature = File.ReadAllText(packagePath + ".codesigning");
@@ -102,16 +106,17 @@ public class QpkgPackage
         FirmwareMinimumVersion = config.GetValueOrDefault("QTS_MINI_VERSION");
     }
 
-    private static Version GetPackageVersion(IDictionary<string, string> config, Func<Version?>? onVersionFailed)
+    private static (string? LiteralVersion, Version? Version) GetPackageVersion(IDictionary<string, string> config, Func<Version?>? onVersionFailed)
     {
+        var literalVersion = config["QPKG_VER"];
         try
         {
             config.TryGetValue("QPKG_VER_LONG", out var version);
-            return new Version(version ?? config["QPKG_VER"]);
+            return (literalVersion, new Version(version ?? literalVersion));
         }
         catch (FormatException)
         {
-            return onVersionFailed?.Invoke();
+            return (literalVersion, onVersionFailed?.Invoke());
         }
     }
 

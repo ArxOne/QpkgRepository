@@ -52,7 +52,7 @@ public class QpkgRepository
             new XElement("name", package.DisplayName),
             new XElement("internalName", package.Name),
             new XElement("description", package.Summary),
-            new XElement("version", package.Version.ToString()),
+            new XElement("version", package.LiteralVersion),
             new XElement("maintainer", package.Author),
             new XElement("developer", package.Author)
             );
@@ -62,16 +62,15 @@ public class QpkgRepository
             new XElement("type", package.Type),
             new XElement("changeLog", package.ChangelogLink),
             new XElement("publishedDate", package.PublishedDate.ToString("yyyy/MM/dd")),
-            new XElement("language", package.Languages),
-            new XElement("icon80", package.Icon80Uri),
-            new XElement("icon100", package.Icon100Uri)
+            new XElement("language", package.Languages)
         );
-        if (package.SnapshotUri is not null)
-            itemElement.Add(new XElement("snapshot", new XCData(package.SnapshotUri)));
+        itemElement.AddXElementIfNotNullOrEmpty("icon100", package.Icon100Uri);
+        itemElement.AddXElementIfNotNullOrEmpty("icon80", package.Icon80Uri);
+        itemElement.AddXElementIfNotNullOrEmpty("snapshot", package.SnapshotUri, true);
+        itemElement.AddXElementIfNotNullOrEmpty("forumLink", package.ForumLink, true);
+        itemElement.AddXElementIfNotNullOrEmpty("bannerImg", package.BannerImg, true);
+        itemElement.AddXElementIfNotNullOrEmpty("tutorialLink", package.TutorialLink, true);
         itemElement.Add(
-            new XElement("forumLink", new XCData(package.ForumLink)),
-            new XElement("bannerImg", new XCData(package.BannerImg)),
-            new XElement("tutorialLink", new XCData(package.TutorialLink)),
             new XElement("fwVersion", package.FirmwareMinimumVersion)
         );
         return itemElement;
