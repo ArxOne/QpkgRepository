@@ -36,7 +36,7 @@ public class QpkgRepository
         var platforms = model is { Length: > 0 } ? model.Select(x => x.Replace(" ", "+")).ToImmutableArray() : DefaultPlatforms;
         var packagesBysSource = LoadPackagesBySource(onVersionFailed);
 
-        var latestPackages = packagesBysSource.GroupBy(x => x.Name).Select(g => g.MaxBy(p => p.Version));
+        var latestPackages = packagesBysSource.GroupBy(x => x.Name).Select(g => g.MaxBy(p => p.Version)!);
         var itemElements = latestPackages.Select(p => CreateItemElement(p, platforms));
 
         var plugins = new XElement("plugins",
@@ -75,19 +75,10 @@ public class QpkgRepository
         );
         return itemElement;
     }
-
-    private XElement CreatePlatformElement(QpkgPackage package, string platform)
+    
+    private List<QpkgPackage> LoadPackagesBySource(Func<string, Version?>? onVersionFailed = null)
     {
-        return new XElement("platform",
-            new XElement("platformID", platform),
-            new XElement("location", package.Location.AbsoluteUri),
-            new XElement("signature", package.Signature)
-        );
-    }
-
-    private IEnumerable<QpkgPackage> LoadPackagesBySource(Func<string, Version?>? onVersionFailed = null)
-    {
-        var packagesBySource = new List<QpkgPackage>();
+        var packagesBySource = new List<QpkgPackage>(); 
         foreach (var source in _sources)
         {
             var files = Directory.GetFiles(source.SourceRelativeDirectory).ToList();
@@ -96,10 +87,10 @@ public class QpkgRepository
         return packagesBySource;
     }
 
-    private IEnumerable<QpkgPackage> LoadPackagesFromSource(IList<string> files, QpkgRepositorySource source, Func<string, Version?>? onVersionFailed = null)
+    private List<QpkgPackage> LoadPackagesFromSource(IList<string> files, QpkgRepositorySource source, Func<string, Version?>? onVersionFailed = null)
     {
         var packages = new List<QpkgPackage>();
-
+        
         var repositoryCache = LoadPackageCache(source);
         var packageInformation = repositoryCache.Packages.ToDictionary(p => p.LocalPath);
         var removedPackageInformation = packageInformation.Keys.ToHashSet();
@@ -119,7 +110,9 @@ public class QpkgRepository
             {
                 try
                 {
-                    var loadPackagesFromSource = new QpkgPackage(filePath, files.Except(filePaths).ToList(), source, _configuration, () => onVersionFailed?.Invoke(filePath));
+                    var loadPackagesFromSource = QpkgPackage.Create(filePath, files.Except(filePaths).ToList(), source, _configuration, () => onVersionFailed?.Invoke(filePath));
+                    if (loadPackagesFromSource is null)
+                        continue;
                     packageInformation[filePath] = loadPackagesFromSource;
                     hasNew = true;
                     packages.Add(loadPackagesFromSource);
@@ -179,6 +172,15 @@ public class QpkgRepository
             Directory.CreateDirectory(cacheDirectory);
         using var cacheWriter = File.Create(cacheFilePath);
         JsonSerializer.Serialize(cacheWriter, repositoryCache);
+    }
+
+    private static XElement CreatePlatformElement(QpkgPackage package, string platform)
+    {
+        return new XElement("platform",
+            new XElement("platformID", platform),
+            new XElement("location", package.Location.AbsoluteUri),
+            new XElement("signature", package.Signature)
+        );
     }
 
     private static readonly IReadOnlyList<string> DefaultPlatforms =

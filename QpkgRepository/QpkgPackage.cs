@@ -76,25 +76,23 @@ public class QpkgPackage
     [JsonPropertyName("snapshot_uri")]
     public string? SnapshotUri { get; set; }
 
-    public QpkgPackage(string packagePath, IList<string> otherFiles, QpkgRepositorySource source, QpkgRepositoryConfiguration configuration, Func<Version?>? onVersionFailed = null)
+    private QpkgPackage(QpkgRepositoryConfiguration repositoryConfiguration, string packagePath, string literalVersion, 
+        Version packageVersion, IDictionary<string, string> configuration, IList<string> otherFiles)
     {
-        using var fileStream = File.OpenRead(packagePath);
-        var config = source.GetRawControl(fileStream);
-        var (literalVersion, packageVersion) = GetPackageVersion(config, onVersionFailed);
-        var packageName = config.GetValueOrDefault("QPKG_NAME");
+        var packageName = configuration.GetValueOrDefault("QPKG_NAME");
         IDictionary<string, string> conf = GetConfigurationFile(packageName, otherFiles);
         LocalPath = packagePath;
-        Author = config.GetValueOrDefault("QPKG_AUTHOR");
+        Author = configuration.GetValueOrDefault("QPKG_AUTHOR");
         Name = packageName;
-        DisplayName = config.GetValueOrDefault("QPKG_DISPLAY_NAME");
-        Summary = config.GetValueOrDefault("QPKG_SUMMARY");
+        DisplayName = configuration.GetValueOrDefault("QPKG_DISPLAY_NAME");
+        Summary = configuration.GetValueOrDefault("QPKG_SUMMARY");
         LiteralVersion = literalVersion;
         Version = packageVersion;
         PublishedDate = File.GetLastWriteTime(packagePath);
         Signature = File.ReadAllText(packagePath + ".codesigning").Trim();
-        Location = GetUri(packagePath, configuration);
-        Icon80Uri = GetIcon(packageName, 80, configuration, otherFiles);
-        Icon100Uri = GetIcon(packageName, 100, configuration, otherFiles);
+        Location = GetUri(packagePath, repositoryConfiguration);
+        Icon80Uri = GetIcon(packageName, 80, repositoryConfiguration, otherFiles);
+        Icon100Uri = GetIcon(packageName, 100, repositoryConfiguration, otherFiles);
         Category = conf.GetValueOrDefault("category", DefaultCategory);
         Type = conf.GetValueOrDefault("type");
         Languages = conf.GetValueOrDefault("language", DefaultLanguages);
@@ -103,10 +101,19 @@ public class QpkgPackage
         ForumLink = conf.GetValueOrDefault("forumlink");
         SnapshotUri = conf.GetValueOrDefault("snapshot");
         BannerImg = conf.GetValueOrDefault("bannerimg");
-        FirmwareMinimumVersion = config.GetValueOrDefault("QTS_MINI_VERSION");
+        FirmwareMinimumVersion = configuration.GetValueOrDefault("QTS_MINI_VERSION");
     }
 
-    private static (string? LiteralVersion, Version? Version) GetPackageVersion(IDictionary<string, string> config, Func<Version?>? onVersionFailed)
+    public static QpkgPackage? Create(string packagePath, IList<string> otherFiles, QpkgRepositorySource source, QpkgRepositoryConfiguration configuration,
+        Func<Version?>? onVersionFailed = null)
+    {
+        using var fileStream = File.OpenRead(packagePath);
+        var config = source.GetRawControl(fileStream);
+        var (literalVersion, packageVersion) = GetPackageVersion(config, onVersionFailed);
+        return packageVersion is null ? null : new QpkgPackage(configuration, packagePath, literalVersion, packageVersion, config, otherFiles);
+    }
+
+    private static (string LiteralVersion, Version? Version) GetPackageVersion(IDictionary<string, string> config, Func<Version?>? onVersionFailed)
     {
         var literalVersion = config["QPKG_VER"];
         try
@@ -133,6 +140,7 @@ public class QpkgPackage
         ForumLink = string.Empty;
         ChangelogLink = string.Empty;
         Category = DefaultCategory;
+        LiteralVersion = string.Empty;
         Type = string.Empty;
         BannerImg = string.Empty;
         Icon80Uri = string.Empty;
