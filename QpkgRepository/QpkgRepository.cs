@@ -46,7 +46,7 @@ public class QpkgRepository
         return new XDocument(plugins);
     }
 
-    private XElement CreateItemElement(QpkgPackage package, IEnumerable<string> platforms)
+    private static XElement CreateItemElement(QpkgPackage package, IEnumerable<string> platforms)
     {
         var itemElement = new XElement("item",
             new XElement("name", new XCData(package.DisplayName)),
