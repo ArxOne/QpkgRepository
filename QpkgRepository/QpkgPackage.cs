@@ -12,71 +12,59 @@ public class QpkgPackage
     private const string DefaultLanguages = "English";
     private const string DefaultCategory = "More";
 
-    [JsonPropertyName("signature")]
-    public string Signature { get; set; }
+    [JsonPropertyName("signature")] public string Signature { get; set; }
 
-    [JsonPropertyName("name")]
-    public string Name { get; set; }
+    [JsonPropertyName("name")] public string Name { get; set; }
 
-    [JsonPropertyName("displayName")]
-    public string DisplayName { get; set; }
+    [JsonPropertyName("displayName")] public string DisplayName { get; set; }
 
-    [JsonPropertyName("literalVersion")]
-    public string LiteralVersion { get; set; }
+    [JsonPropertyName("literalVersion")] public string LiteralVersion { get; set; }
 
-    [JsonPropertyName("version")]
-    public Version Version { get; set; }
+    [JsonPropertyName("version")] public Version Version { get; set; }
 
-    [JsonPropertyName("author")]
-    public string Author { get; set; }
+    [JsonPropertyName("author")] public string Author { get; set; }
 
-    [JsonPropertyName("summary")]
-    public string Summary { get; set; }
+    [JsonPropertyName("summary")] public string Summary { get; set; }
 
-    [JsonPropertyName("firmwareMinimumVersion")]
-    public string FirmwareMinimumVersion { get; set; }
+    [JsonPropertyName("firmwareMinimumVersion")] public string FirmwareMinimumVersion { get; set; }
 
-    [JsonPropertyName("tutorialLink")]
-    public string TutorialLink { get; set; }
+    [JsonPropertyName("tutorialLink")] public string TutorialLink { get; set; }
 
-    [JsonPropertyName("forumLink")]
-    public string ForumLink { get; set; }
+    [JsonPropertyName("forumLink")] public string ForumLink { get; set; }
 
-    [JsonPropertyName("changelogLink")]
-    public string ChangelogLink { get; set; }
+    [JsonPropertyName("changelogLink")] public string ChangelogLink { get; set; }
 
-    [JsonPropertyName("category")]
-    public string Category { get; set; }
+    [JsonPropertyName("category")] public string Category { get; set; }
 
-    [JsonPropertyName("type")]
-    public string Type { get; set; }
+    [JsonPropertyName("type")] public string Type { get; set; }
 
-    [JsonPropertyName("bannerImg")]
-    public string BannerImg { get; set; }
+    [JsonPropertyName("bannerImg")] public string BannerImg { get; set; }
 
-    [JsonPropertyName("icon80Uri")]
-    public string Icon80Uri { get; set; }
+    [JsonPropertyName("icon80Uri")] public string Icon80Uri { get; set; }
 
-    [JsonPropertyName("icon100Uri")]
-    public string Icon100Uri { get; set; }
+    [JsonPropertyName("icon100Uri")] public string Icon100Uri { get; set; }
 
-    [JsonPropertyName("languages")]
-    public string Languages { get; set; }
+    [JsonPropertyName("languages")] public string Languages { get; set; }
 
-    [JsonPropertyName("publishedDate")]
-    public DateTime PublishedDate { get; set; }
+    [JsonPropertyName("publishedDate")] public DateTime PublishedDate { get; set; }
 
-    [JsonPropertyName("localPath")]
-    public string LocalPath { get; set; }
+    [JsonPropertyName("localPath")] public string LocalPath { get; set; }
 
-    [JsonPropertyName("location")]
-    public Uri Location { get; set; }
+    [JsonPropertyName("location")] public Uri Location { get; set; }
+
+    [JsonPropertyName("architecture")] public QpkgArchitecture Architecture { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonPropertyName("snapshot_uri")]
     public string? SnapshotUri { get; set; }
 
-    private QpkgPackage(QpkgRepositoryConfiguration repositoryConfiguration, string packagePath, string literalVersion, 
+    public QpkgArchitecture[] Architectures => Architecture switch
+    {
+        QpkgArchitecture.All => [QpkgArchitecture.Arm64, QpkgArchitecture.X86],
+        _ => [Architecture]
+    };
+
+    private QpkgPackage(QpkgRepositoryConfiguration repositoryConfiguration, string packagePath, string literalVersion,
         Version packageVersion, IDictionary<string, string> configuration, IList<string> otherFiles)
     {
         var packageName = configuration.GetValueOrDefault("QPKG_NAME");
@@ -88,6 +76,7 @@ public class QpkgPackage
         Summary = configuration.GetValueOrDefault("QPKG_SUMMARY");
         LiteralVersion = literalVersion;
         Version = packageVersion;
+        Architecture = GetArchitecture(packagePath);
         PublishedDate = File.GetLastWriteTime(packagePath);
         Signature = File.ReadAllText(packagePath + ".codesigning").Trim();
         Location = GetUri(packagePath, repositoryConfiguration);
@@ -102,6 +91,21 @@ public class QpkgPackage
         SnapshotUri = conf.GetValueOrDefault("snapshot");
         BannerImg = conf.GetValueOrDefault("bannerimg");
         FirmwareMinimumVersion = configuration.GetValueOrDefault("QTS_MINI_VERSION");
+    }
+
+    private static QpkgArchitecture GetArchitecture(string packagePath)
+    {
+        var fileName = Path.GetFileName(packagePath);
+        return GetQpkgArchitecture(fileName) ?? QpkgArchitecture.All;
+    }
+
+    public static QpkgArchitecture? GetQpkgArchitecture(string value)
+    {
+        if (value.Contains("x86", StringComparison.CurrentCultureIgnoreCase))
+            return QpkgArchitecture.X86;
+        if (value.Contains("arm", StringComparison.CurrentCultureIgnoreCase))
+            return QpkgArchitecture.Arm64;
+        return null;
     }
 
     public static QpkgPackage? Create(string packagePath, IList<string> otherFiles, QpkgRepositorySource source, QpkgRepositoryConfiguration configuration,
@@ -174,13 +178,12 @@ public class QpkgPackage
         {
             var configFile = otherFiles.FirstOrDefault(x => x.EndsWith($"{packageName}.conf"));
             if (configFile is null || !File.Exists(configFile))
-                return new Dictionary<string, string>();
-
+                return [];
             return ParseConfiguration(File.ReadAllText(configFile));
         }
         catch (Exception)
         {
-            return new Dictionary<string, string>();
+            return [];
         }
     }
 
