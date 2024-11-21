@@ -3,10 +3,12 @@
 using Utility;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Serialization;
 
+[DebuggerDisplay($"{{{nameof(Name)}}} / {{{nameof(Architecture)}}}")]
 public class QpkgPackage
 {
     private const string DefaultLanguages = "English";
@@ -60,7 +62,7 @@ public class QpkgPackage
 
     public QpkgArchitecture[] Architectures => Architecture switch
     {
-        QpkgArchitecture.All => [QpkgArchitecture.Arm64, QpkgArchitecture.X86],
+        QpkgArchitecture.All => [QpkgArchitecture.Arm64, QpkgArchitecture.X86_64, QpkgArchitecture.Arm32],
         _ => [Architecture]
     };
 
@@ -96,15 +98,19 @@ public class QpkgPackage
     private static QpkgArchitecture GetArchitecture(string packagePath)
     {
         var fileName = Path.GetFileName(packagePath);
-        return GetQpkgArchitecture(fileName) ?? QpkgArchitecture.All;
+        return GetQpkgArchitecture(fileName, null) ?? QpkgArchitecture.All;
     }
 
-    public static QpkgArchitecture? GetQpkgArchitecture(string value)
+    public static QpkgArchitecture? GetQpkgArchitecture(string value, bool? is64Bit)
     {
-        if (value.Contains("x86", StringComparison.CurrentCultureIgnoreCase))
-            return QpkgArchitecture.X86;
-        if (value.Contains("arm", StringComparison.CurrentCultureIgnoreCase))
+        if (value.Contains("x86_64", StringComparison.OrdinalIgnoreCase))
+            return QpkgArchitecture.X86_64;
+        if (value.Contains("x86", StringComparison.OrdinalIgnoreCase))
+            return is64Bit == true ? QpkgArchitecture.X86_64 : QpkgArchitecture.X86;
+        if (value.Contains("arm_64", StringComparison.OrdinalIgnoreCase))
             return QpkgArchitecture.Arm64;
+        if (value.Contains("arm", StringComparison.OrdinalIgnoreCase))
+            return is64Bit == true ? QpkgArchitecture.Arm64 : QpkgArchitecture.Arm32;
         return null;
     }
 

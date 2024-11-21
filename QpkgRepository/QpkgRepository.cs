@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Xml.Linq;
 using Utility;
 
+// ?model=TS-251&platform=X86_BAYTRAIL&fw_version=5.2.1&fw_number=2930&fw_date=20241025&lang=eng&64bit=1
 
 public class QpkgRepository
 {
@@ -28,15 +29,21 @@ public class QpkgRepository
             source.Cache = null;
     }
 
-    public XDocument GetXml(Func<string, Version?>? onVersionFailed) => GetXml(null, "", onVersionFailed);
+    public XDocument GetXml(QpkgRepositoryRequestParameters parameters, Func<string, Version?>? onVersionFailed = null)
+    {
+        parameters.Values.TryGetValue("model", out var model);
+        parameters.Values.TryGetValue("platform", out var platform);
+        parameters.Values.TryGetValue("64bit", out var is64Bit);
+        return GetXml(model is null ? [] : [model], platform, is64Bit == "1" || is64Bit == "true", onVersionFailed);
+    }
 
-    public XDocument GetXml(string[]? model, string? platforms, Func<string, Version?>? onVersionFailed = null)
+    public XDocument GetXml(string[]? model, string? platforms, bool is64Bit, Func<string, Version?>? onVersionFailed = null)
     {
         var models = model is { Length: > 0 } ? model.Select(x => x.Replace(" ", "+")).ToImmutableArray() : DefaultPlatforms;
-        var packagesBysSource = LoadPackagesBySource(onVersionFailed);
-        var platformsArch = platforms is not null ? QpkgPackage.GetQpkgArchitecture(platforms) ?? QpkgArchitecture.Arm64 : QpkgArchitecture.Arm64;
+        var packagesBySource = LoadPackagesBySource(onVersionFailed);
+        var platformsArch = platforms is not null ? QpkgPackage.GetQpkgArchitecture(platforms, is64Bit) ?? QpkgArchitecture.Arm64 : QpkgArchitecture.Arm64;
 
-        var groupBy = packagesBysSource.Where(y => y.Architectures.Contains(platformsArch)).GroupBy(x => x.Name);
+        var groupBy = packagesBySource.Where(y => y.Architectures.Contains(platformsArch)).GroupBy(x => x.Name);
         var latestPackages = groupBy.Select(g => g.MaxBy(p => p.Version)!);
 
         var itemElements = latestPackages.Select(p => CreateItemElement(p, models));
