@@ -4,5 +4,5 @@ using System;
 
 public class QpkgRepositoryCache
 {
-    public QpkgPackage[] Packages { get; set; } = Array.Empty<QpkgPackage>();
+    public QpkgPackage[] Packages { get; set; } = [];
 }
