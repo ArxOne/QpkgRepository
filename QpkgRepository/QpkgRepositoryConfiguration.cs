@@ -35,10 +35,13 @@ public class QpkgRepositoryConfiguration
     /// </value>
     public string StorageRoot { get; }
 
-    public QpkgRepositoryConfiguration(Func<Uri> getSiteRoot, string storageRoot)
+    public OnQpkgVersionFailed OnVersionFailed { get; }
+
+    public QpkgRepositoryConfiguration(Func<Uri> getSiteRoot, string storageRoot, OnQpkgVersionFailed onVersionFailed)
     {
         _getSiteRoot = getSiteRoot;
         StorageRoot = storageRoot;
+        OnVersionFailed = onVersionFailed;
     }
 
     private static string GetDefaultCacheDirectory()

@@ -16,6 +16,8 @@ public class QpkgRepository
     private readonly QpkgRepositoryConfiguration _configuration;
 
     private readonly IReadOnlyList<QpkgRepositorySource> _sources;
+    private ImmutableArray<QpkgPackage>? _packages;
+    private ImmutableArray<QpkgPackage> Packages => _packages ??= LoadPackagesBySource();
 
     public QpkgRepository(QpkgRepositoryConfiguration qpkgRepositoryConfiguration, IEnumerable<QpkgRepositorySource> sources)
     {
@@ -27,20 +29,22 @@ public class QpkgRepository
     {
         foreach (var source in _sources)
             source.Cache = null;
+        if (_packages is not null)
+            _packages = LoadPackagesBySource();
     }
 
-    public XDocument GetXml(QpkgRepositoryRequestParameters parameters, Func<string, Version?>? onVersionFailed = null)
+    public XDocument GetXml(QpkgRepositoryRequestParameters parameters)
     {
         parameters.Values.TryGetValue("model", out var model);
         parameters.Values.TryGetValue("platform", out var platform);
         parameters.Values.TryGetValue("64bit", out var is64Bit);
-        return GetXml(model is null ? [] : [model], platform, is64Bit == "1" || is64Bit == "true", onVersionFailed);
+        return GetXml(model is null ? [] : [model], platform, is64Bit == "1" || is64Bit == "true");
     }
 
-    public XDocument GetXml(string[]? model, string? platforms, bool is64Bit, Func<string, Version?>? onVersionFailed = null)
+    public XDocument GetXml(string[]? model, string? platforms, bool is64Bit)
     {
         var models = model is { Length: > 0 } ? model.Select(x => x.Replace(" ", "+")).ToImmutableArray() : DefaultPlatforms;
-        var packagesBySource = LoadPackagesBySource(onVersionFailed);
+        var packagesBySource = Packages;
         var platformsArch = platforms is not null ? QpkgPackage.GetQpkgArchitecture(platforms, is64Bit) ?? QpkgArchitecture.Arm64 : QpkgArchitecture.Arm64;
 
         var groupBy = packagesBySource.Where(y => y.Architectures.Contains(platformsArch)).GroupBy(x => x.Name);
@@ -85,18 +89,12 @@ public class QpkgRepository
         return itemElement;
     }
 
-    private List<QpkgPackage> LoadPackagesBySource(Func<string, Version?>? onVersionFailed = null)
+    private ImmutableArray<QpkgPackage> LoadPackagesBySource()
     {
-        var packagesBySource = new List<QpkgPackage>();
-        foreach (var source in _sources)
-        {
-            var files = Directory.GetFiles(source.SourceRelativeDirectory).ToList();
-            packagesBySource.AddRange(LoadPackagesFromSource(files, source, onVersionFailed));
-        }
-        return packagesBySource;
+        return [.. _sources.SelectMany(s => LoadPackagesFromSource(Directory.GetFiles(s.SourceRelativeDirectory), s))];
     }
 
-    private List<QpkgPackage> LoadPackagesFromSource(IList<string> files, QpkgRepositorySource source, Func<string, Version?>? onVersionFailed = null)
+    private List<QpkgPackage> LoadPackagesFromSource(IReadOnlyCollection<string> files, QpkgRepositorySource source)
     {
         var packages = new List<QpkgPackage>();
 
@@ -119,7 +117,7 @@ public class QpkgRepository
             {
                 try
                 {
-                    var loadPackagesFromSource = QpkgPackage.Create(filePath, files.Except(filePaths).ToList(), source, _configuration, () => onVersionFailed?.Invoke(filePath));
+                    var loadPackagesFromSource = QpkgPackage.Create(filePath, files.Except(filePaths).ToList(), source, _configuration, () => _configuration.OnVersionFailed?.Invoke(filePath));
                     if (loadPackagesFromSource is null)
                         continue;
                     packageInformation[filePath] = loadPackagesFromSource;
