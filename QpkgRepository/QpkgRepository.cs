@@ -38,19 +38,19 @@ public class QpkgRepository
         parameters.Values.TryGetValue("model", out var model);
         parameters.Values.TryGetValue("platform", out var platform);
         parameters.Values.TryGetValue("64bit", out var is64Bit);
-        return GetXml(model is null ? [] : [model], platform, is64Bit == "1" || is64Bit == "true");
+        return GetXml(model is null ? [] : [model], platform, is64Bit == "1" || is64Bit == "true", parameters.SiteRoot);
     }
 
-    public XDocument GetXml(string[]? model, string? platforms, bool is64Bit)
+    public XDocument GetXml(string[]? model, string? platforms, bool is64Bit, Uri siteRoot)
     {
-        var models = model is { Length: > 0 } ? model.Select(x => x.Replace(" ", "+")).ToImmutableArray() : DefaultPlatforms;
+        var models = model is { Length: > 0 } ? [.. model.Select(x => x.Replace(" ", "+"))] : DefaultPlatforms;
         var packagesBySource = Packages;
         var platformsArch = platforms is not null ? QpkgPackage.GetQpkgArchitecture(platforms, is64Bit) ?? QpkgArchitecture.Arm64 : QpkgArchitecture.Arm64;
 
         var groupBy = packagesBySource.Where(y => y.Architectures.Contains(platformsArch)).GroupBy(x => x.Name);
         var latestPackages = groupBy.Select(g => g.MaxBy(p => p.Version)!);
 
-        var itemElements = latestPackages.Select(p => CreateItemElement(p, models));
+        var itemElements = latestPackages.Select(p => CreateItemElement(p, models, siteRoot));
 
         var plugins = new XElement("plugins",
             new XElement("cachechk", DateTime.Now.ToString("yyyyMMddHHmm"))
@@ -59,7 +59,7 @@ public class QpkgRepository
         return new XDocument(plugins);
     }
 
-    private static XElement CreateItemElement(QpkgPackage package, IEnumerable<string> platforms)
+    private static XElement CreateItemElement(QpkgPackage package, IEnumerable<string> platforms, Uri siteRoot)
     {
         var itemElement = new XElement("item",
             new XElement("name", new XCData(package.DisplayName)),
@@ -69,7 +69,7 @@ public class QpkgRepository
             new XElement("maintainer", new XCData(package.Author)),
             new XElement("developer", new XCData(package.Author))
             );
-        itemElement.Add(platforms.Select(p => CreatePlatformElement(package, p)));
+        itemElement.Add(platforms.Select(p => CreatePlatformElement(package, p, siteRoot)));
         itemElement.Add(
             new XElement("category", package.Category),
             new XElement("type", package.Type),
@@ -77,8 +77,8 @@ public class QpkgRepository
             new XElement("publishedDate", package.PublishedDate.ToString("yyyy/MM/dd")),
             new XElement("language", package.Languages)
         );
-        itemElement.AddXElementIfNotNullOrEmpty("icon100", package.Icon100Uri);
-        itemElement.AddXElementIfNotNullOrEmpty("icon80", package.Icon80Uri);
+        itemElement.AddXElementIfNotNullOrEmpty("icon100", new Uri(siteRoot, package.Icon100Path).AbsoluteUri);
+        itemElement.AddXElementIfNotNullOrEmpty("icon80", new Uri(siteRoot, package.Icon80Path).AbsoluteUri);
         itemElement.AddXElementIfNotNullOrEmpty("snapshot", package.SnapshotUri);
         itemElement.AddXElementIfNotNullOrEmpty("forumLink", package.ForumLink);
         itemElement.AddXElementIfNotNullOrEmpty("bannerImg", package.BannerImg);
@@ -145,7 +145,7 @@ public class QpkgRepository
         var root = source.SourceRelativeDirectory.Trim('/').Replace('/', '-').Replace('\\', '-');
         if (!string.IsNullOrEmpty(root))
             cacheDirectory = Path.Combine(cacheDirectory, root);
-        return cacheDirectory + ".json";
+        return cacheDirectory + "2.json";
     }
 
     private QpkgRepositoryCache LoadPackageCache(QpkgRepositorySource source)
@@ -181,11 +181,11 @@ public class QpkgRepository
         JsonSerializer.Serialize(cacheWriter, repositoryCache);
     }
 
-    private static XElement CreatePlatformElement(QpkgPackage package, string platform)
+    private static XElement CreatePlatformElement(QpkgPackage package, string platform, Uri siteRoot)
     {
         return new XElement("platform",
             new XElement("platformID", platform),
-            new XElement("location", package.Location.AbsoluteUri),
+            new XElement("location", new Uri(siteRoot, package.LocationPath).AbsoluteUri),
             new XElement("signature", package.Signature)
         );
     }

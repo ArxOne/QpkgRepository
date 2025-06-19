@@ -42,9 +42,9 @@ public class QpkgPackage
 
     [JsonPropertyName("bannerImg")] public string BannerImg { get; set; }
 
-    [JsonPropertyName("icon80Uri")] public string Icon80Uri { get; set; }
+    [JsonPropertyName("icon80Uri")] public string Icon80Path { get; set; }
 
-    [JsonPropertyName("icon100Uri")] public string Icon100Uri { get; set; }
+    [JsonPropertyName("icon100Uri")] public string Icon100Path { get; set; }
 
     [JsonPropertyName("languages")] public string Languages { get; set; }
 
@@ -52,7 +52,7 @@ public class QpkgPackage
 
     [JsonPropertyName("localPath")] public string LocalPath { get; set; }
 
-    [JsonPropertyName("location")] public Uri Location { get; set; }
+    [JsonPropertyName("location")] public string LocationPath { get; set; }
 
     [JsonPropertyName("architecture")] public QpkgArchitecture Architecture { get; set; }
 
@@ -81,9 +81,9 @@ public class QpkgPackage
         Architecture = GetArchitecture(packagePath);
         PublishedDate = File.GetLastWriteTime(packagePath);
         Signature = File.ReadAllText(packagePath + ".codesigning").Trim();
-        Location = GetUri(packagePath, repositoryConfiguration);
-        Icon80Uri = GetIcon(packageName, 80, repositoryConfiguration, otherFiles);
-        Icon100Uri = GetIcon(packageName, 100, repositoryConfiguration, otherFiles);
+        LocationPath = GetPath(packagePath, repositoryConfiguration);
+        Icon80Path = GetIconPath(packageName, 80, repositoryConfiguration, otherFiles);
+        Icon100Path = GetIconPath(packageName, 100, repositoryConfiguration, otherFiles);
         Category = conf.GetValueOrDefault("category", DefaultCategory);
         Type = conf.GetValueOrDefault("type");
         Languages = conf.GetValueOrDefault("language", DefaultLanguages);
@@ -137,45 +137,21 @@ public class QpkgPackage
         }
     }
 
-    public QpkgPackage()
-    {
-        Signature = string.Empty;
-        Name = string.Empty;
-        DisplayName = string.Empty;
-        Version = new Version();
-        Author = string.Empty;
-        Summary = string.Empty;
-        FirmwareMinimumVersion = string.Empty;
-        TutorialLink = string.Empty;
-        ForumLink = string.Empty;
-        ChangelogLink = string.Empty;
-        Category = DefaultCategory;
-        LiteralVersion = string.Empty;
-        Type = string.Empty;
-        BannerImg = string.Empty;
-        Icon80Uri = string.Empty;
-        Icon100Uri = string.Empty;
-        Languages = DefaultLanguages;
-        LocalPath = string.Empty;
-        Location = new Uri(string.Empty);
-    }
-
-    private static Uri GetUri(string location, QpkgRepositoryConfiguration configuration)
+    private static string GetPath(string location, QpkgRepositoryConfiguration configuration)
     {
         var storageRootLength = configuration.StorageRoot.Length + 1;
-
-        return new Uri(configuration.SiteRoot, location[storageRootLength..]);
+        return location[storageRootLength..];
     }
 
-    private static string GetIcon(string packageName, int size, QpkgRepositoryConfiguration configuration, IEnumerable<string> otherFiles)
+    private static string GetIconPath(string packageName, int size, QpkgRepositoryConfiguration configuration, IEnumerable<string> otherFiles)
     {
         var iconName = $"{packageName}_{size}";
         var iconLocalPath = otherFiles.FirstOrDefault(x => x.Contains(iconName));
 
         if (iconLocalPath is null || !File.Exists(iconLocalPath))
             return string.Empty;
-        var uri = GetUri(iconLocalPath, configuration);
-        return uri.AbsoluteUri;
+        var uri = GetPath(iconLocalPath, configuration);
+        return uri;
     }
 
     private static Dictionary<string, string> GetConfigurationFile(string packageName, IEnumerable<string> otherFiles)

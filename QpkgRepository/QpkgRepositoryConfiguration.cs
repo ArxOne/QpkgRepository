@@ -1,6 +1,5 @@
 ﻿namespace ArxOne.Qnap;
 
-using System;
 using System.IO;
 
 public class QpkgRepositoryConfiguration
@@ -24,9 +23,6 @@ public class QpkgRepositoryConfiguration
         }
     }
 
-    private readonly Func<Uri> _getSiteRoot;
-    public Uri SiteRoot => _getSiteRoot();
-
     /// <summary>
     /// Gets or sets the storage root.
     /// </summary>
@@ -37,9 +33,8 @@ public class QpkgRepositoryConfiguration
 
     public OnQpkgVersionFailed OnVersionFailed { get; }
 
-    public QpkgRepositoryConfiguration(Func<Uri> getSiteRoot, string storageRoot, OnQpkgVersionFailed onVersionFailed)
+    public QpkgRepositoryConfiguration(string storageRoot, OnQpkgVersionFailed onVersionFailed)
     {
-        _getSiteRoot = getSiteRoot;
         StorageRoot = storageRoot;
         OnVersionFailed = onVersionFailed;
     }
