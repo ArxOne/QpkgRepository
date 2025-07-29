@@ -7,6 +7,8 @@ public class QpkgRepositoryConfiguration
     private bool _cacheDirectorySet;
     private string? _cacheDirectory;
 
+    public string? CacheName { get; set; }
+
     /// <summary>
     /// Gets or sets the cache directory.
     /// </summary>
@@ -39,8 +41,11 @@ public class QpkgRepositoryConfiguration
         OnVersionFailed = onVersionFailed;
     }
 
-    private static string GetDefaultCacheDirectory()
+    private string GetDefaultCacheDirectory()
     {
-        return Path.Combine(Path.GetTempPath(), "qpkg-repository");
+        var defaultCacheDirectory = Path.Combine(Path.GetTempPath(), "qpkg-repository");
+        if (CacheName is not null)
+            defaultCacheDirectory = Path.Combine(defaultCacheDirectory, CacheName);
+        return defaultCacheDirectory;
     }
 }
