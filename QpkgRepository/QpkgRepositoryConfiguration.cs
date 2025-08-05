@@ -2,12 +2,9 @@
 
 using System.IO;
 
-public class QpkgRepositoryConfiguration
+public record QpkgRepositoryConfiguration
 {
-    private bool _cacheDirectorySet;
-    private string? _cacheDirectory;
-
-    public string? CacheName { get; set; }
+    public string? CacheName { get; init; }
 
     /// <summary>
     /// Gets or sets the cache directory.
@@ -15,10 +12,13 @@ public class QpkgRepositoryConfiguration
     /// <value>
     /// The cache directory.
     /// </value>
+    private readonly string? _cacheDirectory;
+    private readonly bool _cacheDirectorySet;
+
     public string? CacheDirectory
     {
         get => _cacheDirectorySet ? _cacheDirectory : GetDefaultCacheDirectory();
-        set
+        init
         {
             _cacheDirectory = value;
             _cacheDirectorySet = true;
