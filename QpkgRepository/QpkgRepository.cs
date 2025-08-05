@@ -16,6 +16,7 @@ public class QpkgRepository
     private readonly QpkgRepositoryConfiguration _configuration;
 
     private readonly IReadOnlyList<QpkgRepositorySource> _sources;
+    private readonly object _packagesLock = new();
     private ImmutableArray<QpkgPackage>? _packages;
     private ImmutableArray<QpkgPackage> Packages => _packages ??= LoadPackagesBySource();
 
@@ -91,7 +92,8 @@ public class QpkgRepository
 
     private ImmutableArray<QpkgPackage> LoadPackagesBySource()
     {
-        return [.. _sources.SelectMany(s => LoadPackagesFromSource(Directory.GetFiles(s.SourceRelativeDirectory), s))];
+        lock (_packagesLock)
+            return [.. _sources.SelectMany(s => LoadPackagesFromSource(Directory.GetFiles(s.SourceRelativeDirectory), s))];
     }
 
     private List<QpkgPackage> LoadPackagesFromSource(IReadOnlyCollection<string> files, QpkgRepositorySource source)
