@@ -54,12 +54,17 @@ public class QpkgPackage
 
     [JsonPropertyName("location")] public string LocationPath { get; set; }
 
-    [JsonPropertyName("architecture")] public QpkgArchitecture Architecture { get; set; }
+    [JsonPropertyName("architecture")] 
+    public QpkgArchitecture Architecture { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonPropertyName("snapshot_uri")]
     public string? SnapshotUri { get; set; }
 
+    [JsonPropertyName("dependencies")]
+    public string[] Dependencies { get; set; }
+
+    [JsonIgnore]
     public QpkgArchitecture[] Architectures => Architecture switch
     {
         QpkgArchitecture.All => [QpkgArchitecture.Arm64, QpkgArchitecture.X86_64, QpkgArchitecture.Arm32],
@@ -93,6 +98,8 @@ public class QpkgPackage
         SnapshotUri = conf.GetValueOrDefault("snapshot");
         BannerImg = conf.GetValueOrDefault("bannerimg");
         FirmwareMinimumVersion = configuration.GetValueOrDefault("QTS_MINI_VERSION");
+        Dependencies = [.. configuration.GetValueOrDefault("QPKG_REQUIRE", "").Split(',').Select(d => d.Trim())
+            .Where(d=>!string.IsNullOrEmpty(d))];
     }
 
     private static QpkgArchitecture GetArchitecture(string packagePath)
@@ -128,8 +135,9 @@ public class QpkgPackage
         var literalVersion = config["QPKG_VER"];
         try
         {
-            config.TryGetValue("QPKG_VER_LONG", out var version);
-            return (literalVersion, new Version(version ?? literalVersion));
+            // this is a specific Arx One extension to bypass version length
+            config.TryGetValue("QPKG_VER_LONG", out var longVersion);
+            return (literalVersion, new Version(longVersion ?? literalVersion));
         }
         catch (FormatException)
         {

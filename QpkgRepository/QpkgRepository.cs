@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Xml.Linq;
 using Utility;
 
@@ -15,15 +16,27 @@ public class QpkgRepository
 {
     private readonly QpkgRepositoryConfiguration _configuration;
 
-    private readonly IReadOnlyList<QpkgRepositorySource> _sources;
+    private readonly ImmutableArray<QpkgRepositorySource> _sources;
     private readonly object _packagesLock = new();
     private ImmutableArray<QpkgPackage>? _packages;
-    private ImmutableArray<QpkgPackage> Packages => _packages ??= LoadPackagesBySource();
+    public ImmutableArray<QpkgPackage> Packages => _packages ??= LoadPackagesBySource();
+
+    private JsonSerializerOptions? _jsonSerializerOptions;
+    private JsonSerializerOptions JsonSerializerOptions => _jsonSerializerOptions ??= CreateJsonSerializerOptions();
 
     public QpkgRepository(QpkgRepositoryConfiguration qpkgRepositoryConfiguration, IEnumerable<QpkgRepositorySource> sources)
     {
         _configuration = qpkgRepositoryConfiguration;
-        _sources = sources.ToImmutableList();
+        _sources = [.. sources];
+    }
+
+    private static JsonSerializerOptions CreateJsonSerializerOptions()
+    {
+        // Create our serialization options
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        // Add a string enum converter
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
     }
 
     public void Reload()
@@ -106,7 +119,7 @@ public class QpkgRepository
         var hasNew = false;
 
 
-        var filePaths = files.Where(x => x.EndsWith(".qpkg")).ToList();
+        var filePaths = files.Where(x => x.EndsWith(".qpkg")).ToImmutableArray();
         foreach (var filePath in filePaths)
         {
             if (packageInformation.TryGetValue(filePath, out var package))
@@ -119,7 +132,7 @@ public class QpkgRepository
             {
                 try
                 {
-                    var loadPackagesFromSource = QpkgPackage.Create(filePath, files.Except(filePaths).ToList(), source, _configuration, () => _configuration.OnVersionFailed?.Invoke(filePath));
+                    var loadPackagesFromSource = QpkgPackage.Create(filePath, [.. files.Except(filePaths)], source, _configuration, () => _configuration.OnVersionFailed?.Invoke(filePath));
                     if (loadPackagesFromSource is null)
                         continue;
                     packageInformation[filePath] = loadPackagesFromSource;
@@ -134,7 +147,7 @@ public class QpkgRepository
         if (!hasNew && removedPackageInformation.Count <= 0)
             return packages;
 
-        repositoryCache.Packages = packageInformation.Values.ToArray();
+        repositoryCache.Packages = [.. packageInformation.Values];
         SavePackageInformation(source, repositoryCache);
         return packages;
     }
@@ -147,7 +160,7 @@ public class QpkgRepository
         var root = source.SourceRelativeDirectory.Trim('/').Replace('/', '-').Replace('\\', '-');
         if (!string.IsNullOrEmpty(root))
             cacheDirectory = Path.Combine(cacheDirectory, root);
-        return cacheDirectory + "2.json";
+        return cacheDirectory + "3.json";
     }
 
     private QpkgRepositoryCache LoadPackageCache(QpkgRepositorySource source)
@@ -162,7 +175,7 @@ public class QpkgRepository
         using var cacheReader = File.OpenRead(cacheFilePath);
         try
         {
-            return JsonSerializer.Deserialize<QpkgRepositoryCache>(cacheReader) ?? new QpkgRepositoryCache();
+            return JsonSerializer.Deserialize<QpkgRepositoryCache>(cacheReader, JsonSerializerOptions) ?? new QpkgRepositoryCache();
         }
         catch
         {
@@ -180,7 +193,7 @@ public class QpkgRepository
         if (cacheDirectory is not null && !Directory.Exists(cacheDirectory))
             Directory.CreateDirectory(cacheDirectory);
         using var cacheWriter = File.Create(cacheFilePath);
-        JsonSerializer.Serialize(cacheWriter, repositoryCache);
+        JsonSerializer.Serialize(cacheWriter, repositoryCache, JsonSerializerOptions);
     }
 
     private static XElement CreatePlatformElement(QpkgPackage package, string platform, Uri siteRoot)
