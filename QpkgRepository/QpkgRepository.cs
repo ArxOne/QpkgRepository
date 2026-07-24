@@ -19,10 +19,23 @@ public class QpkgRepository
     private readonly ImmutableArray<QpkgRepositorySource> _sources;
     private readonly object _packagesLock = new();
     private ImmutableArray<QpkgPackage>? _packages;
-    public ImmutableArray<QpkgPackage> Packages => _packages ??= LoadPackagesBySource();
+    public ImmutableArray<QpkgPackage> Packages
+    {
+        get
+        {
+            if (_packages is null)
+            {
+                _packages = LoadPackagesBySource();
+                Loaded?.Invoke(this, EventArgs.Empty);
+            }
+            return _packages.Value;
+        }
+    }
 
     private JsonSerializerOptions? _jsonSerializerOptions;
     private JsonSerializerOptions JsonSerializerOptions => _jsonSerializerOptions ??= CreateJsonSerializerOptions();
+
+    public event EventHandler Loaded;
 
     public QpkgRepository(QpkgRepositoryConfiguration qpkgRepositoryConfiguration, IEnumerable<QpkgRepositorySource> sources)
     {
@@ -44,7 +57,10 @@ public class QpkgRepository
         foreach (var source in _sources)
             source.Cache = null;
         if (_packages is not null)
+        {
             _packages = LoadPackagesBySource();
+            Loaded?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public XDocument GetXml(QpkgRepositoryRequestParameters parameters)
