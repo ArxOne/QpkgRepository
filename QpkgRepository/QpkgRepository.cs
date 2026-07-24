@@ -43,6 +43,18 @@ public class QpkgRepository
         _sources = [.. sources];
     }
 
+    public QpkgPackage? FindPackage(string name, Version? version)
+    {
+        if (version is null)
+            return FindPackage(name);
+        return Packages.FirstOrDefault(p => p.Name == name && p.Version == version);
+    }
+
+    public QpkgPackage? FindPackage(string name)
+    {
+        return Packages.Where(p => p.Name == name).OrderByDescending(p => p.Version).FirstOrDefault();
+    }
+
     private static JsonSerializerOptions CreateJsonSerializerOptions()
     {
         // Create our serialization options
