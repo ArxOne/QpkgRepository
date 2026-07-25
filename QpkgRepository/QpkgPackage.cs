@@ -18,6 +18,9 @@ public class QpkgPackage
 
     [JsonPropertyName("name")] public string Name { get; set; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonPropertyName("sourceId")] public string? SourceID { get; set; }
+
     [JsonPropertyName("displayName")] public string DisplayName { get; set; }
 
     [JsonPropertyName("literalVersion")] public string LiteralVersion { get; set; }
@@ -54,7 +57,7 @@ public class QpkgPackage
 
     [JsonPropertyName("location")] public string LocationPath { get; set; }
 
-    [JsonPropertyName("architecture")] 
+    [JsonPropertyName("architecture")]
     public QpkgArchitecture Architecture { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -127,7 +130,7 @@ public class QpkgPackage
         using var fileStream = File.OpenRead(packagePath);
         var config = source.GetRawControl(fileStream);
         var (literalVersion, packageVersion) = GetPackageVersion(config, onVersionFailed);
-        return packageVersion is null ? null : new QpkgPackage(configuration, packagePath, literalVersion, packageVersion, config, otherFiles);
+        return packageVersion is null ? null : new QpkgPackage(configuration, packagePath, literalVersion, packageVersion, config, otherFiles) { SourceID = source.SourceID };
     }
 
     private static (string LiteralVersion, Version? Version) GetPackageVersion(IDictionary<string, string> config, Func<Version?>? onVersionFailed)

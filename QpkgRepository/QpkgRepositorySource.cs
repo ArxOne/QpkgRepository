@@ -6,10 +6,12 @@ using System.IO;
 
 public class QpkgRepositorySource
 {
+    public string? SourceID { get; }
+
     /// <summary>
     /// The source relative directory
     /// </summary>
-    public readonly string SourceRelativeDirectory;
+    public string SourceRelativeDirectory { get; }
 
     /// <summary>
     /// Gets or sets the get raw control.
@@ -21,10 +23,10 @@ public class QpkgRepositorySource
 
     internal QpkgRepositoryCache? Cache { get; set; }
 
-
-    public QpkgRepositorySource(string sourceRelativeDirectory, Func<Stream, IDictionary<string, string>> getRawControl)
+    public QpkgRepositorySource(string sourceRelativeDirectory, Func<Stream, IDictionary<string, string>> getRawControl, string? sourceID = null)
     {
         SourceRelativeDirectory = sourceRelativeDirectory;
         GetRawControl = getRawControl;
+        SourceID = sourceID;
     }
 }
