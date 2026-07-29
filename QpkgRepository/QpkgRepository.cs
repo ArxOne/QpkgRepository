@@ -44,23 +44,25 @@ public class QpkgRepository
         _sources = [.. sources];
     }
 
-    public QpkgPackage? FindPackage(string? name, Version? version, string? sourceID = null)
+    public QpkgPackage? FindPackage(string? name, Version? version, string? architecture = null, string? sourceID = null)
     {
         if (version is null)
-            return FindPackage(name, sourceID);
-        return Packages.FirstOrDefault(p => Matches(p, name, sourceID) && p.Version == version);
+            return FindPackage(name, architecture, sourceID);
+        return Packages.FirstOrDefault(p => Matches(p, name, architecture, sourceID) && p.Version == version);
     }
 
-    public QpkgPackage? FindPackage(string? name, string? sourceID = null)
+    public QpkgPackage? FindPackage(string? name, string? architecture, string? sourceID = null)
     {
-        return Packages.Where(p => Matches(p, name, sourceID)).OrderByDescending(p => p.Version).FirstOrDefault();
+        return Packages.Where(p => Matches(p, name, architecture, sourceID)).OrderByDescending(p => p.Version).FirstOrDefault();
     }
 
-    private static bool Matches(QpkgPackage package, string? name, string? sourceID)
+    private static bool Matches(QpkgPackage package, string? name, string? architecture, string? sourceID)
     {
         if (name is not null && package.Name != name)
             return false;
         if (sourceID is not null && package.SourceID != sourceID)
+            return false;
+        if (architecture is not null && package.Architecture != QpkgArchitectureUtility.TryParse(architecture))
             return false;
         return true;
     }
