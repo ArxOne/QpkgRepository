@@ -62,7 +62,7 @@ public class QpkgRepository
             return false;
         if (sourceID is not null && package.SourceID != sourceID)
             return false;
-        if (architecture is not null && package.Architecture != QpkgArchitectureUtility.TryParse(architecture))
+        if (architecture is not null && package.Architecture != QpkgArchitecture.All && package.Architecture != QpkgArchitectureUtility.TryParse(architecture))
             return false;
         return true;
     }
