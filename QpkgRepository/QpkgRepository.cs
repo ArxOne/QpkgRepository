@@ -166,7 +166,6 @@ public class QpkgRepository
             {
                 removedPackageInformation.Remove(filePath);
                 packages.Add(package);
-
             }
             else
             {
