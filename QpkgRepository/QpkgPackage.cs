@@ -21,17 +21,17 @@ public class QpkgPackage
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonPropertyName("sourceId")] public string? SourceID { get; set; }
 
-    [JsonPropertyName("displayName")] public string DisplayName { get; set; }
+    [JsonPropertyName("displayName")] public string? DisplayName { get; set; }
 
     [JsonPropertyName("literalVersion")] public string LiteralVersion { get; set; }
 
     [JsonPropertyName("version")] public Version Version { get; set; }
 
-    [JsonPropertyName("author")] public string Author { get; set; }
+    [JsonPropertyName("author")] public string? Author { get; set; }
 
-    [JsonPropertyName("summary")] public string Summary { get; set; }
+    [JsonPropertyName("summary")] public string? Summary { get; set; }
 
-    [JsonPropertyName("firmwareMinimumVersion")] public string FirmwareMinimumVersion { get; set; }
+    [JsonPropertyName("firmwareMinimumVersion")] public string? FirmwareMinimumVersion { get; set; }
 
     [JsonPropertyName("tutorialLink")] public string TutorialLink { get; set; }
 
@@ -67,6 +67,10 @@ public class QpkgPackage
     [JsonPropertyName("dependencies")]
     public string[] Dependencies { get; set; }
 
+    // this is non-standard
+    [JsonPropertyName("optionalDependencies")]
+    public string[] OptionalDependencies { get; set; }
+
     [JsonIgnore]
     public QpkgArchitecture[] Architectures => Architecture switch
     {
@@ -81,7 +85,7 @@ public class QpkgPackage
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
     private QpkgPackage(QpkgRepositoryConfiguration repositoryConfiguration, string packagePath, string literalVersion,
-        Version packageVersion, IDictionary<string, string> configuration, IList<string> otherFiles)
+        Version packageVersion, IReadOnlyDictionary<string, string> configuration, IList<string> otherFiles)
     {
         var packageName = configuration.GetValueOrDefault("QPKG_NAME");
         IDictionary<string, string> conf = GetConfigurationFile(packageName, otherFiles);
@@ -108,6 +112,9 @@ public class QpkgPackage
         BannerImg = conf.GetValueOrDefault("bannerimg");
         FirmwareMinimumVersion = configuration.GetValueOrDefault("QTS_MINI_VERSION");
         Dependencies = [.. configuration.GetValueOrDefault("QPKG_REQUIRE", "").Split(',').Select(d => d.Trim())
+            .Where(d=>!string.IsNullOrEmpty(d))];
+        // this is non-standard, dont’t search for it in documentation, you won’t find it
+        OptionalDependencies = [.. configuration.GetValueOrDefault("QPKG_OPTIONAL", "").Split(',').Select(d => d.Trim())
             .Where(d=>!string.IsNullOrEmpty(d))];
     }
 
