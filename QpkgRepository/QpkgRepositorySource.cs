@@ -1,4 +1,6 @@
-﻿namespace ArxOne.Qnap;
+﻿using System.Collections.Immutable;
+
+namespace ArxOne.Qnap;
 
 using System;
 using System.Collections.Generic;
@@ -19,11 +21,11 @@ public class QpkgRepositorySource
     /// <value>
     /// The get raw control.
     /// </value>
-    public Func<Stream, IDictionary<string, string>> GetRawControl { get; }
+    public Func<Stream, ImmutableDictionary<string, string>> GetRawControl { get; }
 
     internal QpkgRepositoryCache? Cache { get; set; }
 
-    public QpkgRepositorySource(string sourceRelativeDirectory, Func<Stream, IDictionary<string, string>> getRawControl, string? sourceID = null)
+    public QpkgRepositorySource(string sourceRelativeDirectory, Func<Stream, ImmutableDictionary<string, string>> getRawControl, string? sourceID = null)
     {
         SourceRelativeDirectory = sourceRelativeDirectory;
         GetRawControl = getRawControl;
